@@ -93,8 +93,13 @@ class CloudGeminiClient(ModelClient):
     ):
         self.api_key = (api_key or settings.GEMINI_API_KEY).strip()
         raw_model = (model_name or settings.GEMMA_MODEL).strip()
-        if "gemma-4-9b-it" in raw_model or raw_model == "google/gemma-4-9b-it" or not raw_model:
-            self.model_name = "gemini-3-flash-preview"
+        if (
+            "gemma-4-9b-it" in raw_model
+            or raw_model == "google/gemma-4-9b-it"
+            or not raw_model
+            or raw_model == "gemini-3-flash-preview"
+        ):
+            self.model_name = "gemini-3.5-flash"
         elif raw_model.startswith("google/"):
             self.model_name = raw_model.replace("google/", "")
         else:
@@ -139,27 +144,32 @@ class CloudGeminiClient(ModelClient):
 
             config = types.GenerateContentConfig(**config_kwargs)
 
-            # Enforce 25s timeout per attempt for multimodal extraction
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
                     model=target_model,
                     contents=call_contents,
                     config=config,
                 ),
-                timeout=25.0,
+                timeout=3.5,
             )
 
             if not response or not response.text:
                 raise ModelClientError("Model returned an empty response.")
             return response.text
 
-        # First attempt (with 1 retry on transient error or model fallback)
-        curr_model = self.model_name
-        # If images are provided and current model is text-only Gemma, automatically route to gemini-3-flash-preview
-        if images and "gemma" in curr_model.lower():
-            curr_model = "gemini-3-flash-preview"
+        # Fast model rotation with fast failover
+        primary = self.model_name
+        if images and "gemma" in primary.lower():
+            primary = "gemini-3.5-flash"
 
-        for attempt in range(2):
+        candidate_models = [primary]
+        for fallback in ["gemini-3.5-flash", "gemini-flash-latest"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
+
+        last_error: Optional[Exception] = None
+
+        for curr_model in candidate_models:
             try:
                 try:
                     return await _execute_call(
@@ -170,7 +180,6 @@ class CloudGeminiClient(ModelClient):
                     )
                 except Exception as inner_err:
                     err_msg = str(inner_err).lower()
-                    # If model deployment rejects system_instruction, automatically merge into user prompt
                     if system_instruction and (
                         "system instruction" in err_msg
                         or "system_instruction" in err_msg
@@ -182,7 +191,6 @@ class CloudGeminiClient(ModelClient):
                             target_model=curr_model,
                             use_json_mime=json_mode,
                         )
-                    # If json mime type rejected, retry without response_mime_type
                     if json_mode and ("500" in err_msg or "mime" in err_msg or "schema" in err_msg or "internal" in err_msg):
                         return await _execute_call(
                             use_system_instruction=False,
@@ -192,21 +200,13 @@ class CloudGeminiClient(ModelClient):
                         )
                     raise inner_err
             except asyncio.TimeoutError as te:
-                if attempt == 0:
-                    await asyncio.sleep(1.0)
-                    continue
-                raise ModelTimeoutError("Cloud Gemini request timed out after 30 seconds.") from te
+                last_error = te
+                continue  # Try next fast candidate model
             except Exception as e:
+                last_error = e
                 err_msg = str(e).lower()
-                # 1. Quota or Rate Limit (429)
-                if "429" in err_msg or "resource_exhausted" in err_msg or "quota" in err_msg:
-                    raise ModelRateLimitError(
-                        "Remote Gemini API rate limit or quota exceeded (HTTP 429). "
-                        "Please switch to 'Private, local' mode in settings to run models offline without limits, "
-                        "switch to Demo Mode, or try again later."
-                    ) from e
 
-                # 2. Key Rejected (401 / 403)
+                # 1. Key authentication errors fail fast
                 if "401" in err_msg or "403" in err_msg or "api_key" in err_msg or "permission_denied" in err_msg:
                     raise ModelAuthError(
                         "Gemini API key was rejected by Google AI Studio (HTTP 401/403). "
@@ -214,40 +214,24 @@ class CloudGeminiClient(ModelClient):
                         "Please verify your key at https://aistudio.google.com or switch to Demo Mode."
                     ) from e
 
-                # 3. Model name not found or not allowed (404)
-                if "404" in err_msg or "not found" in err_msg or "no longer available" in err_msg:
-                    if attempt == 0 and curr_model != "gemini-3-flash-preview":
-                        curr_model = "gemini-3-flash-preview"
-                        await asyncio.sleep(0.5)
-                        continue
-                    raise ModelNotFoundError(
-                        f"Configured model '{curr_model}' was not found or is not allowed for your API key. "
-                        "Check available models using 'python scripts/check_gemini.py --list-models' "
-                        "or update GEMMA_MODEL in backend/.env, or switch to Demo Mode."
+                # 2. Rate limit (429) or quota exhausted - fail fast so local high-speed engine takes over instantly
+                if any(x in err_msg for x in ["429", "resource_exhausted", "quota"]):
+                    raise ModelRateLimitError(
+                        "Remote Gemini API daily free quota exceeded (HTTP 429)."
                     ) from e
 
-                # 4. Network / Connection Error
-                if any(x in err_msg for x in ["connect", "network", "getaddrinfo", "dns", "connection reset", "broken pipe", "ssl"]):
-                    if attempt == 0:
-                        await asyncio.sleep(1.0)
-                        continue
-                    raise ModelNetworkError(
-                        "Unable to connect to Google Gemini API (network/connection error). "
-                        "Please check your internet connection or switch to Demo Mode or Local Mode."
-                    ) from e
+                # 3. Model unavailable / busy (503/500/404) - try next model
+                continue
 
-                # 5. Service 500 / 503 internal error (retry with gemini-3-flash-preview if first attempt)
-                if attempt == 0 and ("503" in err_msg or "500" in err_msg or "connection" in err_msg or "internal" in err_msg):
-                    curr_model = "gemini-3-flash-preview"
-                    await asyncio.sleep(0.5)
-                    continue
-
-                raise ModelUnavailableError(
-                    f"Google Gemini service is temporarily unavailable ({e}). "
-                    "Please try again in a few moments or switch to Demo Mode."
-                ) from e
-
-        raise ModelUnavailableError("Cloud Gemini inference failed after retry.")
+        # If all candidate models were exhausted
+        err_str = str(last_error or "").lower()
+        if "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str:
+            raise ModelRateLimitError(
+                "Remote Gemini API rate limit or quota exceeded (HTTP 429)."
+            )
+        raise ModelUnavailableError(
+            f"Google Gemini service is temporarily unavailable across all models. ({last_error})"
+        )
 
 
 # ==============================================================================

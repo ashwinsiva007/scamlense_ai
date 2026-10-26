@@ -312,6 +312,111 @@ MOCK_SCENARIOS = {
             },
         },
     },
+    "payment": {
+        "band": "suspicious",
+        "score": 55,
+        "confidence": "high",
+        "scam_type": "fake_payment_screenshot",
+        "extracted": {
+            "document_type": "payment_screenshot",
+            "sender": "Rahul Verma",
+            "message_text": "Paid Successfully ₹ 12,500.00 to Dharshika S dharshika@okaxis. UPI Ref No: 429910482910. Payment Note: Advance laptop fee sent. Dispatch courier immediately within 1 hour or legal police complaint will be filed.",
+            "urls": [],
+            "phone_numbers": [],
+            "upi_ids": ["dharshika@okaxis"],
+            "amounts": ["₹ 12,500.00", "₹500"],
+            "claimed_brand": "Paytm / UPI",
+            "detected_language": "en",
+            "image_quality": "sharp",
+            "visual_notes": [
+                "Mismatched font weight on amount field",
+                "Urgent coercive payment note",
+                "Unverified transaction status"
+            ],
+        },
+        "signals": [
+            {
+                "id": "PAYMENT_COERCIVE_NOTE",
+                "label": "Coercive Police Threat in Payment Note",
+                "category": "urgency_threat",
+                "weight": 35.0,
+                "evidence": "Dispatch courier immediately within 1 hour or legal police complaint will be filed",
+                "source": "rule",
+            },
+            {
+                "id": "PAYMENT_SCREENSHOT_INCONSISTENCY",
+                "label": "Visual Font Irregularity in Amount",
+                "category": "payment_screenshot",
+                "weight": 20.0,
+                "evidence": "Mismatched font kerning and weight in amount field",
+                "source": "rule",
+            },
+        ],
+        "tool_results": [
+            {
+                "tool": "upi_verifier",
+                "target": "dharshika@okaxis",
+                "status": "ok",
+                "detail": "Valid VPA format.",
+            },
+        ],
+        "i18n": {
+            "en": {
+                "explanation": "This payment screenshot exhibits high risk of digital tampering. A screenshot alone cannot prove a genuine transfer, as fake receipt generator apps and edited images are common. The threat of police action within 1 hour is a classic psychological pressure tactic.",
+                "next_steps": [
+                    "A screenshot cannot prove a payment. Confirm in your bank app or official bank SMS.",
+                    "Do NOT dispatch any goods or courier parcels until money is reflected in your bank account.",
+                    "Do not engage with coercive threats of police complaints.",
+                    "If pressured, block the sender and file an inquiry on cybercrime.gov.in or call 1930.",
+                ],
+                "family_alert": {
+                    "title": "⚠️ Caution: Fake Payment Screenshot Scam",
+                    "body": "Never trust an image or screenshot as proof of money transfer. Scammers use fake receipt maker apps. Always check your actual bank account balance directly.",
+                    "tips": [
+                        "Screenshots are not proof of payment.",
+                        "Check your own bank app balance directly.",
+                        "Ignore threats of fake police complaints.",
+                    ],
+                },
+            },
+            "ta": {
+                "explanation": "இந்த கட்டண ஸ்கிரீன்ஷாட் திருத்தப்பட்டிருக்க அதிக வாய்ப்புள்ளது. ஸ்கிரீன்ஷாட் மட்டும் பணம் வந்ததற்கான ஆதாரமாகாது. 1 மணி நேரத்திற்குள் கூரியர் அனுப்பாவிட்டால் போலீசில் புகார் தருவேன் என மிரட்டுவது வழக்கமான மோசடி உத்தி.",
+                "next_steps": [
+                    "ஒரு ஸ்கிரீன்ஷாட் பணப் பரிவர்த்தனையை நிரூபிக்காது. உங்கள் வங்கி செயலி அல்லது அதிகாரப்பூர்வ எஸ்எம்எஸ் மூலம் உறுதிப்படுத்தவும்.",
+                    "உங்கள் வங்கிக் கணக்கில் பணம் வரவு வைக்கப்படும் வரை பொருட்களை அனுப்ப வேண்டாம்.",
+                    "மிரட்டல்களுக்கு பயந்து எந்த நடவடிக்கையும் எடுக்க வேண்டாம்.",
+                    "தேவைப்பட்டால் 1930 எண்ணில் புகார் அளிக்கவும்.",
+                ],
+                "family_alert": {
+                    "title": "⚠️ எச்சரிக்கை: போலி கட்டண ஸ்கிரீன்ஷாட் மோசடி",
+                    "body": "யாராவது பணம் அனுப்பிவிட்டதாக ஸ்கிரீன்ஷாட் காட்டினால் உடனே நம்பி பொருட்களை அனுப்பாதீர்கள் அல்லது பணம் திருப்பி அனுப்பாதீர்கள். உங்கள் வங்கி செயலியைத் திறந்து பாருங்கள்.",
+                    "tips": [
+                        "ஸ்கிரீன்ஷாட் பண வரவிற்கான ஆதாரம் அல்ல.",
+                        "உங்கள் சொந்த வங்கி செயலியில் கணக்கு இருப்பை சரிபார்க்கவும்.",
+                        "போலீஸ் புகார் மிரட்டல்களை புறக்கணிக்கவும்.",
+                    ],
+                },
+            },
+            "hi": {
+                "explanation": "यह भुगतान स्क्रीनशॉट छेड़छाड़ किया हुआ प्रतीत होता है। केवल एक स्क्रीनशॉट कभी भी भुगतान का पुख्ता प्रमाण नहीं हो सकता। 1 घंटे में कूरियर न भेजने पर पुलिस में शिकायत करने की धमकी दबाव बनाने का पुराना हथकंडा है।",
+                "next_steps": [
+                    "एक स्क्रीनशॉट भुगतान साबित नहीं कर सकता। अपने बैंक ऐप या आधिकारिक बैंक एसएमएस में पुष्टि करें।",
+                    "जब तक बैंक खाते में राशि जमा न दिखे, कोई सामान न भेजें।",
+                    "धमकी भरे संदेशों पर प्रतिक्रिया न दें।",
+                    "साइबर हेल्पलाइन 1930 पर सहायता प्राप्त करें।",
+                ],
+                "family_alert": {
+                    "title": "⚠️ सावधान: फर्जी भुगतान स्क्रीनशॉट की चेतावनी",
+                    "body": "केवल स्क्रीनशॉट देखकर कभी भी सामान न भेजें और न ही कोई रिफंड वापस करें। हमेशा अपने स्वयं के बैंक ऐप में जाकर खाते की शेष राशि जांचें।",
+                    "tips": [
+                        "स्क्रीनशॉट भुगतान का सबूत नहीं होता।",
+                        "अपने बैंक ऐप में जाकर खाते की जांच करें।",
+                        "पुलिस शिकायत की झूठी धमकियों से न डरें।",
+                    ],
+                },
+            },
+        },
+    },
 }
 
 
@@ -322,12 +427,14 @@ def get_mock_response(
     mode: str = "mock",
 ) -> AnalyzeResponse:
     """
-    Selects one of three realistic mock results based on text keywords or filename.
+    Selects one of realistic mock results based on text keywords or filename.
     Defaults to fake internship offer scam if no pattern matches.
     """
     query = (text or "").lower() + " " + (filename or "").lower()
 
-    if any(k in query for k in ["parcel", "courier", "post", "delivery", "track"]):
+    if any(k in query for k in ["payment", "paid", "screenshot", "paytm", "gpay", "phonepe", "s1", "receipt", "rupees", "ref"]):
+        scenario = MOCK_SCENARIOS["payment"]
+    elif any(k in query for k in ["parcel", "courier", "post", "delivery", "track"]):
         scenario = MOCK_SCENARIOS["courier"]
     elif any(k in query for k in ["debited", "hdfc", "sbi", "bank", "balance", "swiggy", "inr"]):
         scenario = MOCK_SCENARIOS["bank_alert"]

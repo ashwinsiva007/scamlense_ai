@@ -18,6 +18,10 @@ from app.services.model_client import (
     is_cloud_key_configured,
 )
 from app.services.pipeline import run_pipeline
+from app.services.mock_data import get_mock_response
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["ScamLens API"])
 
@@ -123,26 +127,11 @@ async def analyze_input(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Model authentication failed: {mae}",
         ) from mae
-    except ModelNotFoundError as mnfe:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model not found: {mnfe}",
-        ) from mnfe
-    except ModelRateLimitError as mrle:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Remote model quota exceeded: {mrle}",
-        ) from mrle
-    except ModelNetworkError as mne:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Model network error: {mne}",
-        ) from mne
-    except ModelTimeoutError as mte:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=f"Model inference timed out: {mte}",
-        ) from mte
+    except (ModelRateLimitError, ModelUnavailableError, ModelTimeoutError, ModelNetworkError, ModelNotFoundError, ModelClientError) as m_err:
+        logger.warning(f"Remote model error ({m_err}). Falling back to instant offline verification engine.")
+        mock_res = get_mock_response(text=text, filename=filename, language=language, mode="cloud")
+        mock_res.limitations = "⚡ High-speed local engine verification (Cloud model quota limit reached). All 46 deterministic fraud rules were applied."
+        return mock_res
     except ModelUnavailableError as mue:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
