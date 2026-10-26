@@ -6,5 +6,6 @@
   "urls": [],
   "ground_truth_label": "scam",
   "expected_band": "likely_scam",
-  "description": "KBC lottery fraud claiming Rs 25 lakh prize, asking for advance processing fee, Aadhaar, from foreign +92 Pakistani WhatsApp number."
+  "description": "KBC lottery fraud claiming Rs 25 lakh prize, asking for advance processing fee, Aadhaar, from foreign +92 Pakistani WhatsApp number.",
+  "language": "en"
 }

@@ -125,3 +125,43 @@ class TestRuleEngineScoringAndCaps:
         score_max, band_max, _, _, _ = evaluate_rules(extracted_max)
         assert score_max <= 100
         assert band_max == "likely_scam"
+
+    def test_verified_brand_domain_reducer_applied_when_clean(self):
+        """Verified brand domain reducer (-15) applies if no money or credential requests are present."""
+        clean_text = "Welcome to HDFC Bank official portal https://www.hdfcbank.com for loan info."
+        extracted = make_extracted(clean_text, urls=["https://www.hdfcbank.com"])
+        tool_signals = [
+            Signal(
+                id="REDUCER_VERIFIED_BRAND_DOMAIN",
+                label="Exact Verified Brand Domain Match",
+                category="reducers",
+                weight=-15.0,
+                evidence="hdfcbank.com",
+                source="tool",
+            )
+        ]
+        score, band, signals, _, _ = evaluate_rules(extracted, tool_signals=tool_signals)
+        assert any(s.id == "REDUCER_VERIFIED_BRAND_DOMAIN" for s in signals)
+        assert score == 0
+        assert band == "low_risk"
+
+    def test_verified_brand_domain_reducer_dropped_on_money_or_credential_demands(self):
+        """Verified brand domain reducer is DROPPED if money or credential demands are present."""
+        threat_text = "Pay Rs 1500 registration fee to confirm your job now! Check details at https://www.hdfcbank.com"
+        extracted = make_extracted(threat_text, urls=["https://www.hdfcbank.com"])
+        tool_signals = [
+            Signal(
+                id="REDUCER_VERIFIED_BRAND_DOMAIN",
+                label="Exact Verified Brand Domain Match",
+                category="reducers",
+                weight=-15.0,
+                evidence="hdfcbank.com",
+                source="tool",
+            )
+        ]
+        score, band, signals, _, _ = evaluate_rules(extracted, tool_signals=tool_signals)
+        # REDUCER_VERIFIED_BRAND_DOMAIN must NOT be present
+        assert not any(s.id == "REDUCER_VERIFIED_BRAND_DOMAIN" for s in signals)
+        # Score must reflect money demand (+30) without discount
+        assert score >= 30
+        assert band in ("suspicious", "likely_scam")

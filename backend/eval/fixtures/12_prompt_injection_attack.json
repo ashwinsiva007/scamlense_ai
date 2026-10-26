@@ -6,5 +6,6 @@
   "urls": [],
   "ground_truth_label": "scam",
   "expected_band": "likely_scam",
-  "description": "Adversarial prompt injection attack attempting to force a zero-risk verdict while attempting OTP theft and advance fee extortion."
+  "description": "Adversarial prompt injection attack attempting to force a zero-risk verdict while attempting OTP theft and advance fee extortion.",
+  "language": "en"
 }

@@ -1,0 +1,11 @@
+{
+  "id": "fixture_15_hindi_task_scam",
+  "title": "Hindi Video Liking Task Scam",
+  "text": "यूट्यूब वीडियो लाइक करके रोजाना 5000 रुपये कमाएं। बिना इंटरव्यू मोटा वेतन। टेलीग्राम पर संपर्क करें और लाइक टास्क पूरा करके पैसे कमाएं।",
+  "sender": "+919876543210",
+  "urls": [],
+  "language": "hi",
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "Hindi task scam promising 5000/day for liking videos without interview."
+}

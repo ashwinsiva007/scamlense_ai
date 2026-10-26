@@ -6,5 +6,6 @@
   "urls": [],
   "ground_truth_label": "genuine",
   "expected_band": "low_risk",
-  "description": "Standard two-factor authentication token containing explicit security warning advising recipient never to share it."
+  "description": "Standard two-factor authentication token containing explicit security warning advising recipient never to share it.",
+  "language": "en"
 }

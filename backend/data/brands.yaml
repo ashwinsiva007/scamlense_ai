@@ -24,6 +24,7 @@ brands:
     canonical_domains:
       - hdfcbank.com
       - hdfc.com
+      - hdfc.bank.in
     keywords: ["hdfc", "hdfc bank"]
     official_sms_senders: ["HDFCBK", "HDFCAL", "HDFCCC"]
 

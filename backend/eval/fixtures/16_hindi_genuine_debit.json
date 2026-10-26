@@ -1,0 +1,11 @@
+{
+  "id": "fixture_16_hindi_genuine_debit",
+  "title": "Hindi Genuine Bank Debit Transaction Alert",
+  "text": "खाता **4589 से INR 450.00 डेबिट किया गया है। शेष राशि: INR 18250.00. खाते से रुपये कटने का सामान्य संदेश। सहायता के लिए 1800112211 पर कॉल करें।",
+  "sender": "SBINB",
+  "urls": [],
+  "language": "hi",
+  "ground_truth_label": "genuine",
+  "expected_band": "low_risk",
+  "description": "Standard informative Hindi bank debit alert with masked account number."
+}

@@ -1,0 +1,11 @@
+{
+  "id": "fixture_14_tamil_genuine_debit",
+  "title": "Tamil Genuine Bank Debit Transaction Alert",
+  "text": "கணக்கு எண் **4589 இருந்து பணம் எடுக்கப்பட்டது INR 450.00. மீதி இருப்பு: INR 18250.00. வங்கி பரிவர்த்தனை செய்தி. உதவிக்கு 1800112211 ஐ அழைக்கவும்.",
+  "sender": "HDFCBK",
+  "urls": [],
+  "language": "ta",
+  "ground_truth_label": "genuine",
+  "expected_band": "low_risk",
+  "description": "Standard informative Tamil transactional bank debit alert with masked account number."
+}

@@ -1,61 +1,196 @@
 {
-  "dataset_version": "v1.0-synthetic-12",
-  "total_eval_samples": 12,
+  "dataset_version": "v1.2-comprehensive",
+  "total_eval_samples": 16,
   "accuracy": 1.0,
   "precision": 1.0,
   "recall": 1.0,
   "f1_score": 1.0,
   "false_positive_rate": 0.0,
-  "average_latency_ms": 1276,
+  "average_latency_ms": 708,
   "rule_packs_loaded": 10,
-  "last_updated": "2026-10-26T07:02:55.853013+00:00",
+  "last_updated": "2026-10-26T10:00:11.794136+00:00",
   "comparison": {
     "llm_only": {
-      "total": 12,
+      "total": 16,
       "tp": 0,
       "fp": 0,
-      "tn": 3,
-      "fn": 9,
-      "accuracy": 0.25,
+      "tn": 5,
+      "fn": 11,
+      "accuracy": 0.3125,
       "precision": 0.0,
       "recall": 0.0,
       "f1_score": 0.0,
-      "false_positive_rate": 0.0
+      "false_positive_rate": 0.0,
+      "confusion_matrix": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 5,
+        "fn": 11
+      }
     },
     "scamlens_hybrid": {
-      "total": 12,
-      "tp": 9,
+      "total": 16,
+      "tp": 11,
       "fp": 0,
-      "tn": 3,
+      "tn": 5,
       "fn": 0,
       "accuracy": 1.0,
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "false_positive_rate": 0.0
+      "false_positive_rate": 0.0,
+      "confusion_matrix": {
+        "tp": 11,
+        "fp": 0,
+        "tn": 5,
+        "fn": 0
+      }
     }
   },
   "confusion_matrix": {
-    "tp": 9,
+    "tp": 11,
     "fp": 0,
-    "tn": 3,
+    "tn": 5,
     "fn": 0
+  },
+  "per_language": {
+    "en": {
+      "samples": 11,
+      "hybrid": {
+        "total": 11,
+        "tp": 8,
+        "fp": 0,
+        "tn": 3,
+        "fn": 0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 8,
+          "fp": 0,
+          "tn": 3,
+          "fn": 0
+        }
+      },
+      "llm_only": {
+        "total": 11,
+        "tp": 0,
+        "fp": 0,
+        "tn": 3,
+        "fn": 8,
+        "accuracy": 0.2727,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 0,
+          "fp": 0,
+          "tn": 3,
+          "fn": 8
+        }
+      }
+    },
+    "ta": {
+      "samples": 2,
+      "hybrid": {
+        "total": 2,
+        "tp": 1,
+        "fp": 0,
+        "tn": 1,
+        "fn": 0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 1,
+          "fp": 0,
+          "tn": 1,
+          "fn": 0
+        }
+      },
+      "llm_only": {
+        "total": 2,
+        "tp": 0,
+        "fp": 0,
+        "tn": 1,
+        "fn": 1,
+        "accuracy": 0.5,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 0,
+          "fp": 0,
+          "tn": 1,
+          "fn": 1
+        }
+      }
+    },
+    "hi": {
+      "samples": 3,
+      "hybrid": {
+        "total": 3,
+        "tp": 2,
+        "fp": 0,
+        "tn": 1,
+        "fn": 0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 2,
+          "fp": 0,
+          "tn": 1,
+          "fn": 0
+        }
+      },
+      "llm_only": {
+        "total": 3,
+        "tp": 0,
+        "fp": 0,
+        "tn": 1,
+        "fn": 2,
+        "accuracy": 0.3333,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "false_positive_rate": 0.0,
+        "confusion_matrix": {
+          "tp": 0,
+          "fp": 0,
+          "tn": 1,
+          "fn": 2
+        }
+      }
+    }
   },
   "fixtures_results": [
     {
       "id": "fixture_01_fake_job_fee",
       "title": "Fake Job Offer with Registration Fee",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "suspicious",
-      "scamlens_score": 35,
-      "signals_count": 2
+      "scamlens_score": 30,
+      "signals_count": 1
     },
     {
       "id": "fixture_02_fake_payment_pending",
       "title": "Fake Payment Screenshot with Pending Status and Invalid UTR",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "suspicious",
       "scamlens_score": 45,
       "signals_count": 3
@@ -63,17 +198,21 @@
     {
       "id": "fixture_03_electricity_threat",
       "title": "Electricity Bill Disconnection Threat Tonight",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
-      "scamlens_band": "likely_scam",
-      "scamlens_score": 60,
+      "llm_only_band": "low_risk",
+      "scamlens_band": "suspicious",
+      "scamlens_score": 45,
       "signals_count": 2
     },
     {
       "id": "fixture_04_bank_kyc_bitly",
       "title": "Bank Account KYC Blocked with Shortened Bitly Link",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "suspicious",
       "scamlens_score": 35,
       "signals_count": 2
@@ -81,8 +220,10 @@
     {
       "id": "fixture_05_courier_delivery_fee",
       "title": "Courier Delivery Address Fee SMS",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "suspicious",
       "scamlens_score": 50,
       "signals_count": 2
@@ -90,26 +231,32 @@
     {
       "id": "fixture_06_kbc_lottery",
       "title": "KBC All India SIM Card Lucky Draw Winner",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "likely_scam",
-      "scamlens_score": 70,
-      "signals_count": 4
+      "scamlens_score": 65,
+      "signals_count": 3
     },
     {
       "id": "fixture_07_telegram_youtube_tasks",
       "title": "Telegram YouTube Video Liking Job",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "suspicious",
-      "scamlens_score": 50,
-      "signals_count": 3
+      "scamlens_score": 35,
+      "signals_count": 4
     },
     {
       "id": "fixture_08_genuine_bank_debit",
       "title": "Genuine Bank Masked Debit Transaction Alert",
+      "language": "en",
       "ground_truth": "genuine",
       "expected_band": "low_risk",
+      "llm_only_band": "low_risk",
       "scamlens_band": "low_risk",
       "scamlens_score": 0,
       "signals_count": 1
@@ -117,8 +264,10 @@
     {
       "id": "fixture_09_genuine_otp_sms",
       "title": "Genuine Bank Login OTP SMS with Security Warning",
+      "language": "en",
       "ground_truth": "genuine",
       "expected_band": "low_risk",
+      "llm_only_band": "low_risk",
       "scamlens_band": "low_risk",
       "scamlens_score": 0,
       "signals_count": 1
@@ -126,8 +275,10 @@
     {
       "id": "fixture_10_genuine_order_delivered",
       "title": "Genuine E-Commerce Order Delivered SMS",
+      "language": "en",
       "ground_truth": "genuine",
       "expected_band": "low_risk",
+      "llm_only_band": "low_risk",
       "scamlens_band": "low_risk",
       "scamlens_score": 0,
       "signals_count": 0
@@ -135,20 +286,68 @@
     {
       "id": "fixture_11_hinglish_tanglish_scam",
       "title": "Hinglish and Tanglish Transliterated Bank KYC Fraud",
+      "language": "hi",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "likely_scam",
-      "scamlens_score": 75,
+      "scamlens_score": 60,
       "signals_count": 3
     },
     {
       "id": "fixture_12_prompt_injection_attack",
       "title": "Adversarial Prompt Injection Attempt with Embedded Phishing",
+      "language": "en",
       "ground_truth": "scam",
       "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
       "scamlens_band": "likely_scam",
-      "scamlens_score": 95,
+      "scamlens_score": 80,
       "signals_count": 3
+    },
+    {
+      "id": "fixture_13_tamil_eb_bill_threat",
+      "title": "Tamil Electricity Disconnection Ultimatum",
+      "language": "ta",
+      "ground_truth": "scam",
+      "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
+      "scamlens_band": "suspicious",
+      "scamlens_score": 45,
+      "signals_count": 2
+    },
+    {
+      "id": "fixture_14_tamil_genuine_debit",
+      "title": "Tamil Genuine Bank Debit Transaction Alert",
+      "language": "ta",
+      "ground_truth": "genuine",
+      "expected_band": "low_risk",
+      "llm_only_band": "low_risk",
+      "scamlens_band": "low_risk",
+      "scamlens_score": 0,
+      "signals_count": 1
+    },
+    {
+      "id": "fixture_15_hindi_task_scam",
+      "title": "Hindi Video Liking Task Scam",
+      "language": "hi",
+      "ground_truth": "scam",
+      "expected_band": "likely_scam",
+      "llm_only_band": "low_risk",
+      "scamlens_band": "suspicious",
+      "scamlens_score": 50,
+      "signals_count": 3
+    },
+    {
+      "id": "fixture_16_hindi_genuine_debit",
+      "title": "Hindi Genuine Bank Debit Transaction Alert",
+      "language": "hi",
+      "ground_truth": "genuine",
+      "expected_band": "low_risk",
+      "llm_only_band": "low_risk",
+      "scamlens_band": "low_risk",
+      "scamlens_score": 0,
+      "signals_count": 1
     }
   ]
 }

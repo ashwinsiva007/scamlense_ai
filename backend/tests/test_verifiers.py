@@ -82,8 +82,24 @@ class TestLookalikeDetection:
     @pytest.mark.asyncio
     async def test_allows_official_canonical_domain(self):
         results, signals = await check_lookalike_domain("onlinesbi.sbi")
-        assert len(signals) == 0
+        # Canonical domain returns REDUCER_VERIFIED_BRAND_DOMAIN (-15) and no threat signals
+        assert len(signals) == 1
+        assert signals[0].id == "REDUCER_VERIFIED_BRAND_DOMAIN"
+        assert signals[0].weight == -15.0
         assert any(r.status == "ok" and "Exact verified match" in r.detail for r in results)
+
+    @pytest.mark.asyncio
+    async def test_one_character_change_lookalike_brand(self):
+        """Tests that a single character edit distance to a known brand triggers lookalike warning."""
+        # 1-character typosquatting on SBI
+        results_sbi, signals_sbi = await check_lookalike_domain("sbi1.com")
+        assert any(s.id == "LINK_LOOKALIKE_DOMAIN" for s in signals_sbi)
+        assert any(r.status == "warn" for r in results_sbi)
+
+        # 1-character insertion on HDFC Bank
+        results_hdfc, signals_hdfc = await check_lookalike_domain("hdfcbannk.com")
+        assert any(s.id == "LINK_LOOKALIKE_DOMAIN" for s in signals_hdfc)
+        assert any(r.status == "warn" for r in results_hdfc)
 
     @pytest.mark.asyncio
     async def test_allows_unrelated_clean_domain(self):

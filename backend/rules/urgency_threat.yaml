@@ -5,7 +5,7 @@ rules:
   - id: URGENCY_ACCOUNT_BLOCKED_TODAY
     label: "Imminent Account Suspension Threat"
     category: urgency_threat
-    weight: 30.0
+    weight: 15.0
     description: "Threatens that user bank account, card, or SIM will be permanently blocked today or within 24 hours."
     advice: "Banks and telecom operators follow formal regulatory notice periods and do not arbitrarily block accounts within hours."
     patterns:
@@ -27,7 +27,7 @@ rules:
   - id: URGENCY_ELECTRICITY_POWER_CUT
     label: "Utility or Electricity Disconnection Ultimatum"
     category: urgency_threat
-    weight: 30.0
+    weight: 15.0
     description: "Threatens that electricity, gas, or water connection will be disconnected tonight unless payment is made."
     advice: "Electricity distribution companies do not send disconnection threats from personal numbers asking to call an officer."
     patterns:
@@ -47,7 +47,7 @@ rules:
   - id: URGENCY_POLICE_LEGAL_ARREST
     label: "Police, CBI or Legal Arrest Threat"
     category: urgency_threat
-    weight: 25.0
+    weight: 15.0
     description: "Intimidates recipient with immediate arrest, court summons, CBI warrant, or customs narcotics charges."
     advice: "Law enforcement agencies and courts do not issue warrants or demand settlements via WhatsApp or text message."
     patterns:

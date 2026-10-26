@@ -1,0 +1,11 @@
+{
+  "id": "fixture_13_tamil_eb_bill_threat",
+  "title": "Tamil Electricity Disconnection Ultimatum",
+  "text": "மின்சாரம் இன்று இரவு துண்டிக்கப்படும். உங்கள் முந்தைய மாத மின் கட்டணம் அப்டேட் செய்யப்படவில்லை. உடனடியாக மின் அலுவலரை 9876543210 என்ற எண்ணில் அழைக்கவும் அல்லது quick support செயலியை பதிவிறக்கம் செய்யவும்.",
+  "sender": "+919876543210",
+  "urls": [],
+  "language": "ta",
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "Tamil utility threat claiming electricity will be disconnected tonight."
+}

@@ -41,7 +41,7 @@ rules:
         - "(?i)whatsapp\\s+la\\s+pesunga"
         - "(?i)telegram\\s+la\\s+message\\s+pannunga"
       hi: # needs native-speaker review
-        - "(?i)व्हाट्सएप\\s*या\\s*टेलीग्राम\\s*पर\\s*संपर्क\\s*करें"
+        - "(?i)(?:व्हाट्सएप|टेलीग्राम)\\s*पर\\s*संपर्क\\s*करें"
         - "(?i)टेलीग्राम\\s*पर\\s*एचआर\\s*से\\s*बात\\s*करें"
         - "(?i)whatsapp\\s+pe\\s+message\\s+karo"
         - "(?i)telegram\\s+par\\s+sampark\\s+kare"

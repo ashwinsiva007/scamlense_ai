@@ -212,18 +212,27 @@ async def unshorten_url(url: str) -> Tuple[str, List[ToolResult], List[Signal]]:
             while hops < max_hops:
                 safe, reason = await check_url_ssrf_safety(current_url)
                 if not safe:
+                    is_dns_failure = "DNS resolution failed" in reason
                     results.append(
                         ToolResult(
                             tool="unshorten",
                             target=current_url,
-                            status="error",
-                            detail=f"SSRF safety check blocked request: {reason}",
+                            status="skipped" if is_dns_failure else "error",
+                            detail=reason if is_dns_failure else f"SSRF safety check blocked request: {reason}",
                         )
                     )
                     return current_url, results, signals
 
                 try:
-                    resp = await client.get(current_url, headers={"User-Agent": "ScamLens-Verifier/1.0"})
+                    # Limit response body reading to max 64KB
+                    async with client.stream("GET", current_url, headers={"User-Agent": "ScamLens-Verifier/1.0"}) as resp:
+                        read_bytes = 0
+                        async for chunk in resp.aiter_bytes():
+                            read_bytes += len(chunk)
+                            if read_bytes >= 65536:
+                                break
+                        is_redirect = resp.is_redirect and "location" in resp.headers
+                        location_header = resp.headers.get("location")
                 except Exception as req_err:
                     results.append(
                         ToolResult(
@@ -235,8 +244,8 @@ async def unshorten_url(url: str) -> Tuple[str, List[ToolResult], List[Signal]]:
                     )
                     return current_url, results, signals
 
-                if resp.is_redirect and "location" in resp.headers:
-                    next_url = urllib.parse.urljoin(current_url, resp.headers["location"])
+                if is_redirect and location_header:
+                    next_url = urllib.parse.urljoin(current_url, location_header)
                     current_url = next_url
                     hops += 1
                 else:
@@ -279,19 +288,31 @@ async def check_lookalike_domain(domain: str) -> Tuple[List[ToolResult], List[Si
     if not domain_clean or "." not in domain_clean:
         return results, signals
 
+    bare_domain = domain_clean[4:] if domain_clean.startswith("www.") else domain_clean
+
     brands = get_brands()
     norm_domain = normalize_homoglyphs(domain_clean)
 
     # Check for exact matches first
     for brand in brands:
         canonical = [cd.lower().strip() for cd in brand.get("canonical_domains", [])]
-        if domain_clean in canonical:
+        if domain_clean in canonical or bare_domain in canonical:
             results.append(
                 ToolResult(
                     tool="lookalike",
                     target=domain_clean,
                     status="ok",
                     detail=f"Exact verified match for official {brand['name']} domain",
+                )
+            )
+            signals.append(
+                Signal(
+                    id="REDUCER_VERIFIED_BRAND_DOMAIN",
+                    label="Exact Verified Brand Domain Match",
+                    category="reducers",
+                    weight=-15.0,
+                    evidence=bare_domain,
+                    source="tool",
                 )
             )
             return results, signals
@@ -556,15 +577,17 @@ async def check_urlhaus(url: str) -> Tuple[List[ToolResult], List[Signal]]:
     results: List[ToolResult] = []
     signals: List[Signal] = []
 
+    key = settings.URLHAUS_KEY
+    if not key:
+        return [ToolResult(tool="urlhaus", target=url, status="skipped", detail="URLhaus API key not configured (URLHAUS_KEY)")], []
+
     cache_key = f"urlhaus_{url}"
     cached = _get_from_cache(cache_key)
     if cached is not None:
         return cached
 
     endpoint = "https://urlhaus-api.abuse.ch/v1/url/"
-    headers = {"User-Agent": "ScamLens-Verifier/1.0"}
-    if settings.URLHAUS_KEY:
-        headers["Auth-Key"] = settings.URLHAUS_KEY
+    headers = {"User-Agent": "ScamLens-Verifier/1.0", "Auth-Key": key}
 
     try:
         async with httpx.AsyncClient(timeout=3.5) as client:
@@ -685,7 +708,8 @@ def check_free_webmail(sender: Optional[str], text: str, claimed_brand: Optional
 
 def check_phone_format(phones: List[str]) -> Tuple[List[ToolResult], List[Signal]]:
     """
-    Checks phone numbers for suspicious international dialling codes in domestic context.
+    Checks phone numbers for Indian mobile formatting vs suspicious foreign dialling codes.
+    States clearly what it can and cannot verify (format only; cannot verify subscriber identity).
     """
     results: List[ToolResult] = []
     signals: List[Signal] = []
@@ -701,7 +725,7 @@ def check_phone_format(phones: List[str]) -> Tuple[List[ToolResult], List[Signal
 
     for phone in phones:
         clean = phone.strip()
-        matched = False
+        matched_suspicious = False
         for prefix, country in suspicious_codes:
             if clean.startswith(prefix):
                 signals.append(
@@ -719,21 +743,33 @@ def check_phone_format(phones: List[str]) -> Tuple[List[ToolResult], List[Signal
                         tool="phone_check",
                         target=clean,
                         status="warn",
-                        detail=f"Originates from {country} ({prefix}), commonly abused in cross-border fraud targeting India",
+                        detail=f"Originates from {country} ({prefix}), commonly abused in cross-border fraud targeting India. Note: Format check only; cannot verify true subscriber.",
                     )
                 )
-                matched = True
+                matched_suspicious = True
                 break
 
-        if not matched:
-            results.append(
-                ToolResult(
-                    tool="phone_check",
-                    target=clean,
-                    status="ok",
-                    detail="Standard phone format",
+        if not matched_suspicious:
+            # Check for standard Indian mobile number (+91 or 10-digit starting with 6,7,8,9)
+            is_indian_mobile = bool(re.match(r"^(?:\+91[\s-]?)?[6-9]\d{9}$", clean.replace(" ", "").replace("-", "")))
+            if is_indian_mobile:
+                results.append(
+                    ToolResult(
+                        tool="phone_check",
+                        target=clean,
+                        status="ok",
+                        detail="Standard Indian mobile number format. Note: Format verification only; does not authenticate caller identity.",
+                    )
                 )
-            )
+            else:
+                results.append(
+                    ToolResult(
+                        tool="phone_check",
+                        target=clean,
+                        status="ok",
+                        detail="Phone format parsed. Note: Format check only; cannot authenticate caller identity.",
+                    )
+                )
 
     return results, signals
 
@@ -798,7 +834,8 @@ def check_upi_format(upi_ids: List[str]) -> Tuple[List[ToolResult], List[Signal]
 
 def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolResult], List[Signal]]:
     """
-    Inspects transaction text for invalid 12-digit UPI UTRs or future timestamps.
+    Inspects transaction text for invalid 12-digit UPI UTRs, impossible future dates, or edited visual notes.
+    States clearly what it can and cannot verify: verifies format only, never claims to confirm a payment actually happened.
     """
     results: List[ToolResult] = []
     signals: List[Signal] = []
@@ -823,11 +860,59 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
                     tool="payment_fields",
                     target=utr_val,
                     status="warn",
-                    detail=f"Invalid UPI UTR: expected 12 digits, found '{utr_val}'",
+                    detail=f"Invalid UPI UTR: expected 12 digits, found '{utr_val}'. Note: Format verification only; cannot confirm whether payment settled.",
+                )
+            )
+        else:
+            results.append(
+                ToolResult(
+                    tool="payment_fields",
+                    target=utr_val,
+                    status="ok",
+                    detail=f"Valid 12-digit UPI reference format. Note: Format check only; ScamLens cannot confirm if funds actually reached your bank account.",
                 )
             )
 
-    # 2. Visual notes inspection for cropped status bar or edited amounts
+    # 2. Check for impossible or future dates in text
+    date_patterns = [
+        r"\b(20[2-9]\d)[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])\b",  # YYYY-MM-DD
+        r"\b(0[1-9]|[12]\d|3[01])[-/](0[1-9]|1[0-2])[-/](20[2-9]\d)\b",  # DD-MM-YYYY
+    ]
+    current_utc = datetime.now(timezone.utc)
+    for pat in date_patterns:
+        m = re.search(pat, text)
+        if m:
+            try:
+                if pat.startswith(r"\b(20"):
+                    year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                else:
+                    day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                txn_date = datetime(year, month, day, tzinfo=timezone.utc)
+                # If transaction date is in the future by more than 1 day
+                if (txn_date - current_utc).total_seconds() > 86400:
+                    signals.append(
+                        Signal(
+                            id="PAY_IMPOSSIBLE_FUTURE_TIMESTAMP",
+                            label="Impossible or Future Transaction Timestamp",
+                            category="payment_screenshot",
+                            weight=20.0,
+                            evidence=m.group(0),
+                            source="tool",
+                        )
+                    )
+                    results.append(
+                        ToolResult(
+                            tool="payment_fields",
+                            target=m.group(0),
+                            status="warn",
+                            detail=f"Transaction timestamp '{m.group(0)}' is dated in the future. Note: Format check only; cannot verify bank transfer.",
+                        )
+                    )
+                    break
+            except Exception:
+                pass
+
+    # 3. Visual notes inspection for cropped status bar or edited amounts
     for note in visual_notes:
         note_lower = note.lower()
         if any(term in note_lower for term in ("cropped status bar", "edited amount", "tampered", "spoof generator")):
@@ -846,7 +931,7 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
                     tool="payment_fields",
                     target="image_layout",
                     status="warn",
-                    detail=f"Visual tampering detected: {note}",
+                    detail=f"Visual tampering detected: {note}. Note: Cannot verify whether payment occurred.",
                 )
             )
 
@@ -881,14 +966,21 @@ async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], Lis
             r_all = list(r_unshort)
             s_all = list(s_unshort)
 
+            parsed_orig = urllib.parse.urlparse(u)
+            domain_orig = parsed_orig.hostname or ""
+
             parsed = urllib.parse.urlparse(expanded_url)
             domain = parsed.hostname or ""
 
-            if domain:
-                r_look, s_look = await check_lookalike_domain(domain)
-                r_all.extend(r_look)
-                s_all.extend(s_look)
+            domains_checked = set()
+            for d in [domain_orig, domain]:
+                if d and d not in domains_checked:
+                    domains_checked.add(d)
+                    r_look, s_look = await check_lookalike_domain(d)
+                    r_all.extend(r_look)
+                    s_all.extend(s_look)
 
+            if domain:
                 r_age, s_age = await check_domain_age(domain)
                 r_all.extend(r_age)
                 s_all.extend(s_age)

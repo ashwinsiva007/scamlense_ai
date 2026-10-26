@@ -126,6 +126,7 @@ async def run_pipeline(
             mode=active_mode,
             scam_type=scam_type,
             model_client=model_client,
+            extracted=extracted,
         )
         timings["explanation"] = max(1, int((time.perf_counter() - t_exp_start) * 1000))
     else:
@@ -155,6 +156,7 @@ async def run_pipeline(
             mode=active_mode,
             scam_type=scam_type,
             model_client=model_client,
+            extracted=extracted,
         )
         timings["explanation"] = max(1, int((time.perf_counter() - t_exp_start) * 1000))
 

@@ -6,5 +6,6 @@
   "urls": [],
   "ground_truth_label": "genuine",
   "expected_band": "low_risk",
-  "description": "Standard transactional debit notification from registered bank SMS header with masked account number and remaining balance."
+  "description": "Standard transactional debit notification from registered bank SMS header with masked account number and remaining balance.",
+  "language": "en"
 }

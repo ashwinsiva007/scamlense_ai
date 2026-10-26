@@ -86,7 +86,8 @@ rules:
         - "(?i)video\\s+like\\s+panni\\s+kaasu"
         - "(?i)telegram\\s+task\\s+job"
       hi: # needs native-speaker review
-        - "(?i)वीडियो\\s*लाइक\\s*करके\\s*पैसे\\s*कमाएं"
+        - "(?i)वीडियो\\s*लाइक\\s*करके.*कमाएं"
+        - "(?i)यूट्यूब\\s*वीडियो\\s*लाइक"
         - "(?i)यूट्यूब\\s*लाइक\\s*टास्क\\s*जॉब"
         - "(?i)like\\s+karo\\s+aur\\s+paise\\s+kamao"
         - "(?i)per\\s+task\\s+paise\\s+milenge"

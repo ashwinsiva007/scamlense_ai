@@ -3,8 +3,11 @@
   "title": "Fake Job Offer with Registration Fee",
   "text": "Dear Candidate, Congratulations! You are shortlisted for Google India Data Entry Operator role. Daily salary Rs 4500. No interview or experience required. To confirm your joining letter and security badge, pay refundable registration fee of Rs 1,499 via UPI to careers-google@okaxis immediately.",
   "sender": "careers-google@gmail.com",
-  "urls": ["http://google-careers-portal.xyz/apply"],
+  "urls": [
+    "http://google-careers-portal.xyz/apply"
+  ],
   "ground_truth_label": "scam",
   "expected_band": "likely_scam",
-  "description": "Advance fee job fraud asking for Rs 1499 registration fee with free Gmail sender and lookalike domain."
+  "description": "Advance fee job fraud asking for Rs 1499 registration fee with free Gmail sender and lookalike domain.",
+  "language": "en"
 }

@@ -3,8 +3,11 @@
   "title": "Hinglish and Tanglish Transliterated Bank KYC Fraud",
   "text": "Sir aapka SBI bank account block ho jayega aaj raat tak. Jaldi se apna pan card update kare aur otp share kare nahi toh khata band ho jayega. Click kare: http://bit.ly/sbi-pan-update",
   "sender": "+919876543210",
-  "urls": ["http://bit.ly/sbi-pan-update"],
+  "urls": [
+    "http://bit.ly/sbi-pan-update"
+  ],
   "ground_truth_label": "scam",
   "expected_band": "likely_scam",
-  "description": "Transliterated Hinglish phishing SMS warning user about account closure, demanding OTP share, and including bit.ly link."
+  "description": "Transliterated Hinglish phishing SMS warning user about account closure, demanding OTP share, and including bit.ly link.",
+  "language": "hi"
 }

@@ -63,11 +63,13 @@ rules:
         - "(?i)anydesk\\s*பதிவிறக்கம்"
         - "(?i)teamviewer\\s*செயலியை\\s*நிறுவவும்"
         - "(?i)ஆப்\\s*இன்ஸ்டால்\\s*செய்யவும்"
+        - "(?i)quick[ -]?support\\s*செயலியை\\s*(?:பதிவிறக்கம்|நிறுவவும்)"
         - "(?i)screen\\s+share\\s+app\\s+install\\s+pannunga"
       hi: # needs native-speaker review
         - "(?i)anydesk\\s*डाउनलोड\\s*करें"
         - "(?i)teamviewer\\s*इंस्टॉल\\s*करें"
         - "(?i)ऐप\\s*इंस्टॉल\\s*करें"
+        - "(?i)quick[ -]?support\\s*(?:डाउनलोड|इंस्टॉल)\\s*करें"
         - "(?i)screen\\s+share\\s+kare"
 
   - id: MONEY_VERIFY_TRANSFER

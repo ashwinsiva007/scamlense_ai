@@ -327,6 +327,8 @@ class MockClient(ModelClient):
             parts = prompt.split('"""')
             if len(parts) >= 3:
                 extracted_text = parts[1].strip()
+        elif "input message text to extract:" in p_lower:
+            extracted_text = prompt.split("INPUT MESSAGE TEXT TO EXTRACT:")[-1].strip()
 
         if extracted_text:
             urls = re.findall(r'https?://[^\s<>"\'\)]+', extracted_text)
@@ -336,10 +338,15 @@ class MockClient(ModelClient):
             )
             upis = re.findall(r'\b[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}\b', extracted_text)
             amounts = re.findall(r'(?:Rs\.?|INR|₹)\s*[\d,]+(?:\.\d{2})?', extracted_text, re.IGNORECASE)
+            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b', extracted_text)
+            sms_sender = re.search(r'\b[A-Z]{2}-[A-Z0-9]{4,8}\b', extracted_text)
 
             visual_notes: List[str] = []
             if "visual notes:" in extracted_text.lower():
                 v_part = extracted_text.lower().split("visual notes:")[-1]
+                visual_notes = [n.strip() for n in v_part.split(",") if n.strip()]
+            elif "visual_notes:" in extracted_text.lower():
+                v_part = extracted_text.lower().split("visual_notes:")[-1]
                 visual_notes = [n.strip() for n in v_part.split(",") if n.strip()]
 
             claimed_brand = None
@@ -349,34 +356,43 @@ class MockClient(ModelClient):
                     break
 
             doc_type = "sms"
-            if "internship" in extracted_text.lower() or "joining letter" in extracted_text.lower():
+            if "internship" in extracted_text.lower() or "joining letter" in extracted_text.lower() or "offer letter" in extracted_text.lower():
                 doc_type = "offer_letter"
-            elif "debited" in extracted_text.lower() or "credited" in extracted_text.lower():
+            elif "debited" in extracted_text.lower() or "credited" in extracted_text.lower() or "a/c" in extracted_text.lower():
                 doc_type = "bank_alert"
             elif "paid" in extracted_text.lower() and "utr" in extracted_text.lower():
                 doc_type = "payment_screenshot"
 
+            sender_val = None
+            if emails:
+                sender_val = emails[0]
+            elif sms_sender:
+                sender_val = sms_sender.group(0)
+            elif phones:
+                sender_val = phones[0]
+
+            detected_lang = "en"
+            if re.search(r'[\u0B80-\u0BFF]', extracted_text):
+                detected_lang = "ta"
+            elif re.search(r'[\u0900-\u097F]', extracted_text):
+                detected_lang = "hi"
+
             return json.dumps({
                 "document_type": doc_type,
-                "sender": phones[0] if phones else None,
+                "sender": sender_val,
                 "message_text": extracted_text,
                 "urls": urls,
                 "phone_numbers": phones,
                 "upi_ids": upis,
                 "amounts": amounts,
                 "claimed_brand": claimed_brand,
-                "detected_language": "en",
-                "image_quality": "sharp",
+                "detected_language": detected_lang,
+                "image_quality": "sharp" if images else "text_only",
                 "visual_notes": visual_notes,
             })
 
-        # Default realistic mock extraction matching schema
-        if "input message text to extract" in p_lower:
-            user_part = p_lower.split("input message text to extract")[-1]
-        else:
-            user_part = p_lower
-
-        if any(k in user_part for k in ["courier", "parcel", "indiapost", "delivery", "track"]):
+        # Default realistic mock extraction matching schema for image-only inputs
+        if any(k in p_lower for k in ["courier", "parcel", "indiapost", "delivery", "track"]):
             return json.dumps({
                 "document_type": "sms",
                 "sender": "+919123456789",
@@ -390,7 +406,7 @@ class MockClient(ModelClient):
                 "image_quality": "sharp",
                 "visual_notes": ["Courier SMS template", "Suspicious link at end"],
             })
-        elif any(k in user_part for k in ["debited", "hdfc", "swiggy", "debit alert"]):
+        elif any(k in p_lower for k in ["debited", "hdfc", "swiggy", "debit alert"]):
             return json.dumps({
                 "document_type": "bank_alert",
                 "sender": "VK-HDFCBK",
