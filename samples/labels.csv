@@ -1,0 +1,7 @@
+filename,label,scam_type,language,notes
+sample_internship_offer.png,likely_scam,fake_internship_fee,en,Synthetic offer letter demanding Rs 1500 refundable security deposit
+sample_courier_phishing.png,suspicious,courier_delivery_scam,en,Synthetic SMS claiming pending parcel with suspicious non-gov URL
+sample_bank_debit_alert.png,low_risk,none,en,Genuine HDFC bank debit alert with masked account number and official helpline
+sample_tamil_eb_bill_threat.png,likely_scam,electricity_bill_threat,ta,Tamil synthetic message threatening power cut tonight unless link clicked
+sample_hindi_part_time_job.png,likely_scam,work_from_home_task,hi,Hindi synthetic message offering 5000/day for liking videos
+sample_blurry_unreadable.png,insufficient_info,unknown,en,Extremely low resolution unreadable test image

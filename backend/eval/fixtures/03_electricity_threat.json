@@ -1,0 +1,10 @@
+{
+  "id": "fixture_03_electricity_threat",
+  "title": "Electricity Bill Disconnection Threat Tonight",
+  "text": "Dear Consumer, your electricity power will be disconnected tonight at 09:30 PM from the power station because your previous month bill was not updated. Please immediately contact our electricity officer Mr. Sharma at 9876543210 or install quick support app to avoid light cut.",
+  "sender": "+919876543210",
+  "urls": [],
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "Urgent utility disconnection threat pressuring user to call a personal mobile number or install remote access APK."
+}

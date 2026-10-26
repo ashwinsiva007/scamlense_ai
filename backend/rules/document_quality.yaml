@@ -1,0 +1,90 @@
+category: document_quality
+description: "Rules detecting visual anomalies, missing corporate registration identifiers, poor grammar, and counterfeit letterhead artifacts in documents."
+
+rules:
+  - id: DOC_VISUAL_FONT_INCONSISTENCY
+    label: "Letterhead or Font Visual Inconsistency"
+    category: document_quality
+    weight: 10.0
+    description: "Document exhibits mismatched fonts, misaligned corporate logos, blurry letterheads, or visible copy-paste artifacts."
+    advice: "Formal corporate letters follow strict brand guidelines. Visual irregularities often point to forged templates."
+    patterns:
+      en:
+        - "(?i)visual\\s+notes?:?.*(?:mismatched\\s+fonts?|blurry\\s+logo|copy[- ]paste\\s+artifact|pixelated\\s+header|misaligned)"
+        - "(?i)inconsistent\\s+typography\\s+or\\s+letterhead\\s+distortion"
+        - "(?i)logo\\s+appears\\s+tampered\\s+or\\s+low[- ]resolution"
+      ta: # needs native-speaker review
+        - "(?i)எழுத்துரு\\s*முரண்பாடுகள்\\s*அல்லது\\s*மங்கலான\\s*சின்னம்"
+        - "(?i)போலி\\s*லெட்டர்ஹெட்\\s*குறியீடு"
+        - "(?i)font\\s+mismatch\\s+logo\\s+blurry"
+        - "(?i)letterhead\\s+thappaga\\s+irukku"
+      hi: # needs native-speaker review
+        - "(?i)लेटरहेड\\s*या\\s*फ़ॉन्ट\\s*में\\s*विसंगति"
+        - "(?i)धुंधला\\s*लोगो\\s*या\\s*काट-छांट\\s*के\\s*निशान"
+        - "(?i)font\\s+mismatch\\s+aur\\s+tampered\\s+logo"
+        - "(?i)nakli\\s+letterhead\\s+prateet\\s+hota\\s+hai"
+
+  - id: DOC_MISSING_REGISTRATION_CIN
+    label: "Missing Corporate Identification Number (CIN) or Registration"
+    category: document_quality
+    weight: 10.0
+    description: "Official contract or offer letter lacks mandatory corporate identifiers (CIN, GSTIN, registered office address, or verified contact info)."
+    advice: "Indian registered companies must display their Corporate Identity Number (CIN) on official correspondence. Verify CIN on mca.gov.in."
+    patterns:
+      en:
+        - "(?i)missing\\s+(?:cin|gstin|corporate\\s+registration|company\\s+identification\\s+number)"
+        - "(?i)no\\s+verifiable\\s+(?:registered\\s+office\\s+address|corporate\\s+registration)"
+        - "(?i)invalid\\s+or\\s+unregistered\\s+cin"
+      ta: # needs native-speaker review
+        - "(?i)நிறுவன\\s*பதிவு\\s*எண்\\s*(?:சிஐஎன்|ஜிஎஸ்டி)\\s*இல்லை"
+        - "(?i)பதிவு\\s*செய்யப்படாத\\s*நிறுவன\\s*கடிதம்"
+        - "(?i)cin\\s+number\\s+illai"
+        - "(?i)gstin\\s+missing"
+      hi: # needs native-speaker review
+        - "(?i)कंपनी\\s*रजिस्ट्रेशन\\s*नंबर\\s*(सीआईएन/जीएसटीआईएन)\\s*का\\s*अभाव"
+        - "(?i)पंजीकृत\\s*कार्यालय\\s*का\\s*पता\\s*गायब"
+        - "(?i)cin\\s+gstin\\s+gayab\\s+hai"
+        - "(?i)corporate\\s+registration\\s+nahi\\s+hai"
+
+  - id: DOC_POOR_GRAMMAR_TYPOS
+    label: "Severe Grammatical Errors and Formatting Faults"
+    category: document_quality
+    weight: 5.0
+    description: "Document contains egregious spelling errors, erratic capitalization, broken sentence structures, or translation artifacts."
+    advice: "Official corporate legal documents undergo professional editorial review. Repeated basic errors signal amateur fraud."
+    patterns:
+      en:
+        - "(?i)(?:\\bcongratulation\\b|kindely|dearest\\s+customer|revert\\s+back\\s+urgent|do\\s+the\\s+needful\\s+immediately)"
+        - "(?i)severe\\s+grammatical\\s+flaws\\s+and\\s+awkward\\s+phrasing"
+        - "(?i)erratic\\s+capitalization\\s+and\\s+broken\\s+syntax"
+      ta: # needs native-speaker review
+        - "(?i)கடுமையான\\s*இலக்கண\\s*மற்றும்\\s*எழுத்துப்\\s*பிழைகள்"
+        - "(?i)பிழையான\\s*வாக்கிய\\s*அமைப்பு"
+        - "(?i)grammar\\s+mistakes\\s+adhigama\\s+irukku"
+        - "(?i)spelling\\s+mistakes"
+      hi: # needs native-speaker review
+        - "(?i)गंभीर\\s*व्याकरण\\s*और\\s*वर्तनी\\s*की\\s*गलतियां"
+        - "(?i)टूटी-फूटी\\s*भाषा\\s*और\\s*अनुवाद\\s*दोष"
+        - "(?i)grammar\\s+typos\\s+bohot\\s+hai"
+        - "(?i)galat\\s+angrezi\\s+aur\\s+spelling"
+
+  - id: DOC_RUBBER_STAMP_ANOMALY
+    label: "Digitally Superimposed Rubber Stamp or Signature"
+    category: document_quality
+    weight: 10.0
+    description: "Rubber stamps or executive signatures show pixel halos, artificial opacity, or floating placement inconsistent with paper flow."
+    advice: "Scammers frequently copy-paste official seals and signatures from unrelated online PDF circulars onto fabricated documents."
+    patterns:
+      en:
+        - "(?i)visual\\s+notes?:?.*(?:superimposed|floating\\s+stamp|fake\\s+seal|rubber\\s+stamp\\s+halo|signature\\s+pasted)"
+        - "(?i)digital\\s+rubber\\s+stamp\\s+anomaly"
+        - "(?i)pasted\\s+signature\\s+detected"
+      ta: # needs native-speaker review
+        - "(?i)ஒட்டப்பட்ட\\s*போலி\\s*முத்திரை\\s*அல்லது\\s*கையொப்பம்"
+        - "(?i)digital\\s+seal\\s+tampered"
+        - "(?i)fake\\s+stamp\\s+ottirukanga"
+      hi: # needs native-speaker review
+        - "(?i)डिजिटल\\s*रूप\\s*से\\s*चिपकाया\\s*गया\\s*नकली\\s*सील\\s*या\\s*हस्ताक्षर"
+        - "(?i)काट-छांट\\s*कर\\s*लगाई\\s*गई\\s*रबर\\s*मुहर"
+        - "(?i)pasted\\s+seal\\s+aur\\s+signature"
+        - "(?i)nakli\\s+rubber\\s+stamp"

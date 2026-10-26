@@ -1,0 +1,44 @@
+name: New Rule Pack Proposal
+description: Propose a new detection rule or update an existing rule pack
+title: "[RULE]: "
+labels: ["rule-pack", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Propose new detection rules for emerging scams and deceptive patterns.
+  - type: input
+    id: scam_type
+    attributes:
+      label: Scam Classification
+      description: What specific scam or technique does this rule detect? (e.g., electricity bill cut, work-from-home telegram task)
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Target Signal Category
+      options:
+        - money_demands
+        - credentials
+        - urgency_threat
+        - too_good
+        - impersonation
+        - links
+        - sender
+        - document_quality
+        - payment_screenshot
+        - reducers
+    validations:
+      required: true
+  - type: textarea
+    id: quoted_evidence_examples
+    attributes:
+      label: Quoted Evidence Examples
+      description: Provide exact synthetic phrases or text patterns encountered in this scam.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_yaml
+    attributes:
+      label: Proposed YAML Specification
+      description: Provide the proposed rule pack YAML definition if available.

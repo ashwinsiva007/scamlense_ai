@@ -1,0 +1,29 @@
+name: New Language Support
+description: Propose adding support for a new language or regional dialect in ScamLens
+title: "[LANG]: Support for "
+labels: ["i18n", "localization"]
+body:
+  - type: markdown
+    attributes:
+      value: ScamLens is dedicated to making scam detection accessible in vernacular languages.
+  - type: input
+    id: language_name
+    attributes:
+      label: Language Name (English and Native Script)
+      placeholder: e.g. Telugu (తెలుగు), Bengali (বাংলা)
+    validations:
+      required: true
+  - type: input
+    id: iso_code
+    attributes:
+      label: ISO 639-1 Code
+      placeholder: e.g. te, bn, mr
+    validations:
+      required: true
+  - type: textarea
+    id: fonts_and_rendering
+    attributes:
+      label: Font and Script Considerations
+      description: Are specific Google Fonts required for web rendering?
+    validations:
+      required: false

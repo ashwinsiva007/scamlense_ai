@@ -1,0 +1,10 @@
+{
+  "id": "fixture_10_genuine_order_delivered",
+  "title": "Genuine E-Commerce Order Delivered SMS",
+  "text": "Your Amazon package containing order 402-9832711-291823 has been delivered to your doorstep. Thank you for shopping with us. Manage your orders on amazon.in",
+  "sender": "AMAZON",
+  "urls": ["https://amazon.in"],
+  "ground_truth_label": "genuine",
+  "expected_band": "low_risk",
+  "description": "Legitimate post-delivery notification from Amazon without requests for payment, credentials, or urgent threats."
+}

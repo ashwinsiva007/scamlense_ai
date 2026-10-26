@@ -1,0 +1,90 @@
+category: sender
+description: "Rules detecting suspicious sender identifiers, free webmail impersonation, forced migration to private messaging, and foreign calling codes."
+
+rules:
+  - id: SENDER_FREE_WEBMAIL_OFFICIAL
+    label: "Free Webmail Used for Corporate or Official Entity"
+    category: sender
+    weight: 15.0
+    description: "Sender claims to represent an enterprise, bank, or government body but uses a free public email provider (gmail.com, yahoo.com, outlook.com)."
+    advice: "Corporations and banks communicate from verified corporate domains (e.g., @sbi.co.in, @hdfcbank.com), never from free public Gmail or Yahoo accounts."
+    patterns:
+      en:
+        - "(?i)@(gmail|yahoo|hotmail|outlook|rediffmail)\\.com"
+        - "(?i)(?:official|hr|support|careers|bank|recruitment).*@(gmail|yahoo|outlook)\\.com"
+        - "(?i)free\\s+public\\s+webmail\\s+sender"
+      ta: # needs native-speaker review
+        - "(?i)இலவச\\s*ஜிமெயில்\\s*அல்லது\\s*யாகூ\\s*முகவரி"
+        - "(?i)வங்கி\\s*அல்லது\\s*நிறுவனம்\\s*gmail\\s*பயன்படுத்துகிறது"
+        - "(?i)official\\s+matter\\s+la\\s+gmail\\s+use\\s+panranga"
+        - "(?i)free\\s+email\\s+sender"
+      hi: # needs native-speaker review
+        - "(?i)निजी\\s*या\\s*फ्री\\s*ईमेल\\s*का\\s*उपयोग"
+        - "(?i)बैंक\\s*या\\s*कंपनी\\s*द्वारा\\s*जीमेल\\s*का\\s*इस्तेमाल"
+        - "(?i)official\\s+id\\s+ki\\s+jagah\\s+gmail"
+        - "(?i)free\\s+webmail\\s+se\\s+message"
+
+  - id: SENDER_MOVE_TO_PRIVATE_MESSAGING
+    label: "Prompt to Switch to WhatsApp or Telegram"
+    category: sender
+    weight: 10.0
+    description: "Directs recipient from official job portal or SMS to private channels like WhatsApp or Telegram to bypass platform fraud screening."
+    advice: "Legitimate enterprise recruitment occurs via corporate email and applicant portals, never over ephemeral Telegram chats."
+    patterns:
+      en:
+        - "(?i)(?:contact|chat|message|reach)\\s+(?:us\\s+)?(?:on|via)\\s+(?:whatsapp|telegram)\\s*(?:at|:)?\\s*\\+?\\d*"
+        - "(?i)add\\s+(?:hr|manager)\\s+on\\s+(?:telegram|whatsapp)\\s+for\\s+interview"
+        - "(?i)(?:t\\.me|wa\\.me)/[a-zA-Z0-9_]+"
+      ta: # needs native-speaker review
+        - "(?i)வாட்ஸ்அப்\\s*அல்லது\\s*டெலிகிராமில்\\s*தொடர்பு\\s*கொள்ளவும்"
+        - "(?i)டெலிகிராமில்\\s*பேசவும்"
+        - "(?i)whatsapp\\s+la\\s+pesunga"
+        - "(?i)telegram\\s+la\\s+message\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)व्हाट्सएप\\s*या\\s*टेलीग्राम\\s*पर\\s*संपर्क\\s*करें"
+        - "(?i)टेलीग्राम\\s*पर\\s*एचआर\\s*से\\s*बात\\s*करें"
+        - "(?i)whatsapp\\s+pe\\s+message\\s+karo"
+        - "(?i)telegram\\s+par\\s+sampark\\s+kare"
+
+  - id: SENDER_SUSPICIOUS_COUNTRY_CODE
+    label: "Suspicious Foreign Country Code (+92, +84, +234, etc.)"
+    category: sender
+    weight: 15.0
+    description: "Message originates from foreign dialling codes commonly abused for syndicate cross-border fraud targeting Indian residents."
+    advice: "Indian banks, government bodies, and domestic couriers will never contact Indian consumers using international numbers."
+    patterns:
+      en:
+        - "(?:^|\\s)(?:\\+92|\\+84|\\+234|\\+254|\\+62|\\+63|\\+966|\\+971)\\s*[0-9]{8,12}"
+        - "(?i)foreign\\s+(?:phone\\s*number|country\\s*code|origin)"
+        - "(?i)international\\s+number\\s+calling\\s+for\\s+domestic\\s+service"
+      ta: # needs native-speaker review
+        - "(?i)வெளிநாட்டு\\s*தொலைபேசி\\s*எண்"
+        - "(?i)சந்தேகத்திற்கிடமான\\s*நாட்டுக்\\s*குறியீடு"
+        - "(?i)foreign\\s+number\\s+la\\s+irundhu\\s+message"
+        - "(?i)international\\s+code\\s+call"
+      hi: # needs native-speaker review
+        - "(?i)विदेशी\\s*कंट्री\\s*कोड\\s*से\\s*संदेश"
+        - "(?i)असामान्य\\s*विदेशी\\s*मोबाइल\\s*नंबर"
+        - "(?i)foreign\\s+country\\s+code\\s+hai"
+        - "(?i)bahar\\s+ke\\s+desh\\s+ka\\s+number"
+
+  - id: SENDER_MISMATCHED_DISPLAY_NAME
+    label: "Mismatched Sender Display Name or Spoofed Header"
+    category: sender
+    weight: 15.0
+    description: "Sender display name claims a trusted entity (e.g. SBI, Income Tax) while the underlying address or number is completely unrelated."
+    advice: "Examine the underlying email address or phone header rather than the self-declared contact name."
+    patterns:
+      en:
+        - "(?i)sender\\s+display\\s+name\\s+does\\s+not\\s+match\\s+address"
+        - "(?i)mismatched\\s+sender\\s+identity"
+        - "(?i)spoofed\\s+sender\\s+header"
+      ta: # needs native-speaker review
+        - "(?i)பெயர்\\s*பொருந்தாத\\s*அனுப்புநர்\\s*விவரம்"
+        - "(?i)mismatched\\s+sender\\s+display"
+        - "(?i)poiyana\\s+sender\\s+name"
+      hi: # needs native-speaker review
+        - "(?i)प्रेषक\\s*के\\s*नाम\\s*और\\s*पते\\s*में\\s*विसंगति"
+        - "(?i)नकली\\s*डिस्प्ले\\s*नाम"
+        - "(?i)mismatched\\s+sender\\s+name"
+        - "(?i)spoofed\\s+sender\\s+id"

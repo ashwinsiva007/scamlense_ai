@@ -1,0 +1,10 @@
+{
+  "id": "fixture_05_courier_delivery_fee",
+  "title": "Courier Delivery Address Fee SMS",
+  "text": "India Post: Your package cannot be delivered due to wrong house address. Parcel is held at central hub. Update your address within 24 hours and pay Rs 25 redelivery fee or shipment will be returned: https://indiapost-parcel-update.com/track",
+  "sender": "+919876543210",
+  "urls": ["https://indiapost-parcel-update.com/track"],
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "Postal courier delivery scam mimicking India Post demanding an address redelivery fee on a lookalike domain."
+}

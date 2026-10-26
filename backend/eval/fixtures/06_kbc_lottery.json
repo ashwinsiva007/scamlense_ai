@@ -1,0 +1,10 @@
+{
+  "id": "fixture_06_kbc_lottery",
+  "title": "KBC All India SIM Card Lucky Draw Winner",
+  "text": "Congratulations! Your mobile number has won first prize of Rs 25,00,000 in KBC All India SIM Lucky Draw 2026. To claim your cash prize directly in your bank account, send your photo of Aadhaar and pay processing fee Rs 5,000. Contact lottery manager on WhatsApp at +923012345678.",
+  "sender": "+923012345678",
+  "urls": [],
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "KBC lottery fraud claiming Rs 25 lakh prize, asking for advance processing fee, Aadhaar, from foreign +92 Pakistani WhatsApp number."
+}

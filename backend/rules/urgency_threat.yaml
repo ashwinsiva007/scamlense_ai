@@ -1,0 +1,108 @@
+category: urgency_threat
+description: "Rules detecting artificial deadlines, intimidation, arrest threats, and disconnection ultimatums."
+
+rules:
+  - id: URGENCY_ACCOUNT_BLOCKED_TODAY
+    label: "Imminent Account Suspension Threat"
+    category: urgency_threat
+    weight: 30.0
+    description: "Threatens that user bank account, card, or SIM will be permanently blocked today or within 24 hours."
+    advice: "Banks and telecom operators follow formal regulatory notice periods and do not arbitrarily block accounts within hours."
+    patterns:
+      en:
+        - "(?i)(?:is|will\\s+be|has\\s+been)\\s+(?:blocked|suspended|deactivated|closed)\\s+(?:today|within\\s+24\\s+hours|immediately)"
+        - "(?i)account\\s+(?:blocked|freeze|suspended)\\s+(?:due\\s+to|for|today)"
+        - "(?i)urgent\\s+kyc\\s+update\\s+required\\s+to\\s+avoid\\s+blocking"
+      ta: # needs native-speaker review
+        - "(?i)கணக்கு\\s*இன்றே\\s*முடக்கப்படும்"
+        - "(?i)உடனடியாக\\s*செயலிழக்கப்படும்"
+        - "(?i)24\\s*மணி\\s*நேரத்தில்\\s*பிளாக்\\s*செய்யப்படும்"
+        - "(?i)account\\s+block\\s+aagirum"
+      hi: # needs native-speaker review
+        - "(?i)खाता\\s*आज\\s*ही\\s*ब्लॉक\\s*हो\\s*जाएगा"
+        - "(?i)24\\s*घंटे\\s*में\\s*खाता\\s*बंद\\s*होगा"
+        - "(?i)खाता\\s*स्थगित\\s*कर\\s*दिया\\s*जाएगा"
+        - "(?i)account\\s+block\\s+ho\\s+jayega"
+
+  - id: URGENCY_ELECTRICITY_POWER_CUT
+    label: "Utility or Electricity Disconnection Ultimatum"
+    category: urgency_threat
+    weight: 30.0
+    description: "Threatens that electricity, gas, or water connection will be disconnected tonight unless payment is made."
+    advice: "Electricity distribution companies do not send disconnection threats from personal numbers asking to call an officer."
+    patterns:
+      en:
+        - "(?i)(?:electricity|power)\\s+(?:power\\s+)?(?:will\\s+be\\s+)?disconnected\\s+tonight"
+        - "(?i)power\\s+supply\\s+will\\s+be\\s+cut\\s+off\\s+(?:today|tonight)"
+        - "(?i)call\\s+(?:electricity\\s+officer|power\\s+department)"
+      ta: # needs native-speaker review
+        - "(?i)மின்சாரம்\\s*இன்று\\s*இரவு\\s*துண்டிக்கப்படும்"
+        - "(?i)மின்\\s*இணைப்பு\\s*துண்டிக்கப்படும்"
+        - "(?i)current\\s+cut\\s+aagirum"
+      hi: # needs native-speaker review
+        - "(?i)बिजली\\s*का\\s*कनेक्शन\\s*आज\\s*रात\\s*(?:कट|काट)\\s*दिया\\s*जाएगा"
+        - "(?i)बिजली\\s*सप्लाई\\s*बंद\\s*होगी"
+        - "(?i)bijli\\s+cut\\s+ho\\s+jayegi"
+
+  - id: URGENCY_POLICE_LEGAL_ARREST
+    label: "Police, CBI or Legal Arrest Threat"
+    category: urgency_threat
+    weight: 25.0
+    description: "Intimidates recipient with immediate arrest, court summons, CBI warrant, or customs narcotics charges."
+    advice: "Law enforcement agencies and courts do not issue warrants or demand settlements via WhatsApp or text message."
+    patterns:
+      en:
+        - "(?i)(?:police|cbi|customs|crime\\s+branch|ed|narcotics)\\s+(?:warrant|legal\\s+notice|arrest\\s+order)"
+        - "(?i)(?:arrest\\s+warrant|fir)\\s+(?:issued|registered)\\s+against\\s+you"
+        - "(?i)immediate\\s+legal\\s+action\\s+(?:will\\s+be\\s+taken|court\\s+order)"
+      ta: # needs native-speaker review
+        - "(?i)காவல்துறை\\s*கைது\\s*ஆணை"
+        - "(?i)சட்டப்படியான\\s*நடவடிக்கை\\s*மற்றும்\\s*கைது"
+        - "(?i)police\\s+arrest\\s+order\\s+vandhuruku"
+      hi: # needs native-speaker review
+        - "(?i)गिरफ्तारी\\s*वारंट\\s*जारी"
+        - "(?i)पुलिस\\s*कार्रवाई\\s*की\\s*धमकी"
+        - "(?i)सीबीआई\\s*या\\s*कोर्ट\\s*का\\s*समन"
+        - "(?i)police\\s+arrest\\s+karegi"
+
+  - id: URGENCY_ARTIFICIAL_DEADLINE
+    label: "Artificial Strict Deadline Pressure"
+    category: urgency_threat
+    weight: 15.0
+    description: "Imposes extreme short-term deadlines (within 10 minutes, 1 hour, immediately) to prevent deliberation."
+    advice: "Scammers create false panic so victims act before having time to consult family members or verify facts."
+    patterns:
+      en:
+        - "(?i)within\\s+(?:10|15|30)\\s+minutes"
+        - "(?i)act\\s+now\\s+or\\s+lose\\s+forever"
+        - "(?i)last\\s+(?:warning|chance|reminder)\\s+before\\s+penalty"
+      ta: # needs native-speaker review
+        - "(?i)10\\s*நிமிடங்களுக்குள்"
+        - "(?i)கடைசி\\s*வாய்ப்பு"
+        - "(?i)உடனே\\s*செயல்படவும்"
+        - "(?i)last\\s+chance\\s+seekiram\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)10\\s*मिनट\\s*के\\s*भीतर"
+        - "(?i)अंतिम\\s*चेतावनी"
+        - "(?i)तुरंत\\s*कार्रवाई\\s*करें"
+        - "(?i)aakhri\\s+moka\\s+turant\\s+kare"
+
+  - id: URGENCY_SIM_DEACTIVATION
+    label: "SIM Card Deactivation Threat"
+    category: urgency_threat
+    weight: 15.0
+    description: "Threatens that user's SIM card will be deactivated due to pending document verification."
+    advice: "DoT and telecom operators follow formal DLT processes; they do not send SMS from 10-digit mobile numbers."
+    patterns:
+      en:
+        - "(?i)sim\\s+(?:card\\s+)?will\\s+be\\s+(?:deactivated|blocked|disconnected)\\s+(?:today|within\\s+24\\s+hours)"
+        - "(?i)telecom\\s+kyc\\s+pending\\s+sim\\s+blocked"
+        - "(?i)call\\s+customer\\s+care\\s+to\\s+activate\\s+sim"
+      ta: # needs native-speaker review
+        - "(?i)சிம்\\s*கார்டு\\s*முடக்கப்படும்"
+        - "(?i)சிம்\\s*இணைப்பு\\s*துண்டிக்கப்படும்"
+        - "(?i)sim\\s+card\\s+cut\\s+aagirum"
+      hi: # needs native-speaker review
+        - "(?i)सिम\\s*कार्ड\\s*ब्लॉक\\s*हो\\s*जाएगा"
+        - "(?i)सिम\\s*बंद\\s*होने\\s*की\\s*धमकी"
+        - "(?i)sim\\s+deactivate\\s+ho\\s+jayega"

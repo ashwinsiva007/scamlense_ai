@@ -1,0 +1,111 @@
+category: money_demands
+description: "Rules detecting advance fee requests, registration charges, courier unlock fees, and remote access solicitations."
+
+rules:
+  - id: MONEY_JOB_REGISTRATION_FEE
+    label: "Job or Internship Registration Fee"
+    category: money_demands
+    weight: 30.0
+    description: "Demands upfront payment, registration fee, or training charge to secure employment or internship."
+    advice: "Legitimate employers never demand upfront fees, training charges, or equipment deposits from candidates."
+    patterns:
+      en:
+        - "(?i)(?:registration|processing|onboarding|training|interview)\\s+fee"
+        - "(?i)(?:refundable\\s+)?(?:security\\s+deposit|caution\\s+deposit)"
+        - "(?i)pay\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s*(?:for|to\\s+confirm)\\s+(?:seat|slot|offer|job|internship)"
+      ta: # needs native-speaker review
+        - "(?i)பதிவுக்\\s*கட்டணம்"
+        - "(?i)பாதுகாப்பு\\s*வைப்புத்தொகை"
+        - "(?i)வேலைக்கு\\s*பணம்\\s*செலுத்தவும்"
+        - "(?i)பயிற்சிக்\\s*கட்டணம்"
+        - "(?i)registration\\s+fee\\s+kattunga"
+      hi: # needs native-speaker review
+        - "(?i)पंजीकरण\\s*शुल्क"
+        - "(?i)रजिस्ट्रेशन\\s*फीस"
+        - "(?i)सिक्योरिटी\\s*डिपॉजिट"
+        - "(?i)नौकरी\\s*के\\s*लिए\\s*पैसे"
+        - "(?i)registration\\s+fees\\s+jama\\s+kare"
+
+  - id: MONEY_PRIZE_CUSTOMS_FEE
+    label: "Payment Required to Release Prize, Parcel or Refund"
+    category: money_demands
+    weight: 30.0
+    description: "Requires paying customs duty, release fee, delivery charge, or processing fee to receive money or parcel."
+    advice: "Never pay money to receive a prize, lottery, tax refund, or courier delivery."
+    patterns:
+      en:
+        - "(?i)pay\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s+(?:to\\s+claim|to\\s+receive|for\\s+delivery|customs\\s+clearance)"
+        - "(?i)(?:customs\\s+fee|clearance\\s+charge|tax\\s+deposit)\\s+(?:required|pending)"
+        - "(?i)claim\\s+(?:lottery|prize|reward|refund)\\s+(?:after|by)\\s+paying"
+      ta: # needs native-speaker review
+        - "(?i)பரிசைப்\\s*பெற\\s*கட்டணம்"
+        - "(?i)சுங்கக்\\s*கட்டணம்"
+        - "(?i)பார்சல்\\s*பெற\\s*பணம்"
+        - "(?i)delivery\\s+charge\\s+kattunga"
+      hi: # needs native-speaker review
+        - "(?i)इनाम\\s*पाने\\s*के\\s*लिए\\s*शुल्क"
+        - "(?i)कस्टम\\s*ड्यूटी\\s*जमा\\s*करें"
+        - "(?i)पार्सल\\s*रिलीज\\s*शुल्क"
+        - "(?i)prize\\s+lene\\s+ke\\s+liye\\s+pay\\s+kare"
+
+  - id: MONEY_REMOTE_ACCESS_APP
+    label: "Request to Install Remote Access Application"
+    category: money_demands
+    weight: 30.0
+    description: "Instructs recipient to install screen sharing or remote desktop software (AnyDesk, TeamViewer, QuickSupport)."
+    advice: "Never install remote access software or screen-sharing tools based on an unsolicited message or call."
+    patterns:
+      en:
+        - "(?i)install\\s+(?:anydesk|teamviewer|rustdesk|quick[ -]?support|zoho\\s+assist|screenshare|support\\s+app)"
+        - "(?i)download\\s+(?:support\\s+app|remote\\s+tool|verification\\s+apk|quick[ -]?support)"
+        - "(?i)share\\s+(?:your\\s+)?(?:9-digit|code)\\s+from\\s+anydesk"
+      ta: # needs native-speaker review
+        - "(?i)anydesk\\s*பதிவிறக்கம்"
+        - "(?i)teamviewer\\s*செயலியை\\s*நிறுவவும்"
+        - "(?i)ஆப்\\s*இன்ஸ்டால்\\s*செய்யவும்"
+        - "(?i)screen\\s+share\\s+app\\s+install\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)anydesk\\s*डाउनलोड\\s*करें"
+        - "(?i)teamviewer\\s*इंस्टॉल\\s*करें"
+        - "(?i)ऐप\\s*इंस्टॉल\\s*करें"
+        - "(?i)screen\\s+share\\s+kare"
+
+  - id: MONEY_VERIFY_TRANSFER
+    label: "Transfer Money to Verify Account"
+    category: money_demands
+    weight: 30.0
+    description: "Asks user to send money via UPI or NetBanking to verify or unfreeze their bank account or wallet."
+    advice: "Legitimate banks and UPI services NEVER ask customers to send money to activate or verify an account."
+    patterns:
+      en:
+        - "(?i)send\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s+to\\s+(?:verify|activate|unfreeze)\\s+(?:account|upi|wallet)"
+        - "(?i)test\\s+transaction\\s+of\\s+(?:rs\\.?|inr|₹)"
+        - "(?i)transfer\\s+(?:amount|money|verification\\s+deposit|deposit|funds)\\s+(?:of\\s+(?:rs\\.?|inr|₹)?\\s*\\d+)?.*(?:to\\s+verify|for\\s+kyc|to\\s+activate|to\\s+[a-zA-Z0-9.-]+@[a-zA-Z]+)"
+      ta: # needs native-speaker review
+        - "(?i)சரிபார்க்க\\s*பணம்\\s*அனுப்பவும்"
+        - "(?i)கணக்கை\\s*செயல்படுத்த\\s*ரூபாய்"
+        - "(?i)account\\s+verify\\s+panna\\s+kaasu\\s+anupunga"
+      hi: # needs native-speaker review
+        - "(?i)खाता\\s*सत्यापित\\s*करने\\s*के\\s*लिए\\s*पैसे\\s*भेजें"
+        - "(?i)खाता\\s*चालू\\s*करने\\s*के\\s*लिए\\s*राशि\\s*ट्रांसफर"
+        - "(?i)account\\s+verify\\s+karne\\s+ke\\s+liye\\s+paise\\s+bheje"
+
+  - id: MONEY_COURIER_REROUTE_FEE
+    label: "Small Fee for Parcel Address Update"
+    category: money_demands
+    weight: 25.0
+    description: "Requests paying nominal fee (Rs 5, 10, 25) to reschedule or update delivery address."
+    advice: "Postal and courier services do not solicit small payments via third-party web forms to update addresses."
+    patterns:
+      en:
+        - "(?i)pay\\s+(?:rs\\.?|inr|₹)?\\s*[0-9]{1,4}\\s+(?:for\\s+(?:re-?delivery|delivery)|redelivery\\s+fee|to\\s+update\\s+address)"
+        - "(?i)(?:nominal|reschedule|redelivery)\\s+fee\\s+(?:of\\s+)?(?:rs\\.?|inr|₹)"
+        - "(?i)redelivery\\s+charge\\s+(?:pending|due)"
+      ta: # needs native-speaker review
+        - "(?i)மறுடெலிவரிக்கு\\s*ரூபாய்"
+        - "(?i)முகவரி\\s*மாற்ற\\s*கட்டணம்"
+        - "(?i)parcel\\s+charge\\s+kattunga"
+      hi: # needs native-speaker review
+        - "(?i)पुनः\\s*डिलीवरी\\s*शुल्क"
+        - "(?i)पता\\s*अपडेट\\s*करने\\s*के\\s*लिए\\s*शुल्क"
+        - "(?i)delivery\\s+ke\\s+liye\\s+fees\\s+pay\\s+kare"

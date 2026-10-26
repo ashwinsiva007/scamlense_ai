@@ -1,0 +1,109 @@
+category: links
+description: "Rules detecting suspicious links, URL shorteners, raw IP destinations, domain lookalikes, newly registered domains, and threat feed hits."
+
+rules:
+  - id: LINK_SHORTENED_URL
+    label: "Obfuscated or Shortened URL"
+    category: links
+    weight: 10.0
+    description: "Uses a URL shortener (e.g., bit.ly, tinyurl, is.gd, cutt.ly) to mask the real destination website."
+    advice: "Never click shortened links in unrequested SMS or messages. Scammers use shorteners to disguise phishing and malware sites."
+    patterns:
+      en:
+        - "(?i)https?://(?:bit\\.ly|tinyurl\\.com|is\\.gd|cutt\\.ly|rb\\.gy|t\\.co|t\\.ly|rebrand\\.ly|shorturl\\.at)/[a-zA-Z0-9_-]+"
+        - "(?i)click\\s+(?:here|link)\\s*:?\\s*https?://(?:bit\\.ly|tinyurl|is\\.gd|cutt\\.ly)"
+        - "(?i)tiny\\.cc/[a-zA-Z0-9_-]+"
+      ta: # needs native-speaker review
+        - "(?i)மறைக்கப்பட்ட\\s*இணைப்பு\\s*அல்லது\\s*குறுகிய\\s*வலைத்தளம்"
+        - "(?i)bit\\.ly\\s*இணைப்பை\\s*கிளிக்\\s*செய்யவும்"
+        - "(?i)short\\s+link\\s+click\\s+pannunga"
+        - "(?i)bitly\\s+link\\s+anupirukanga"
+      hi: # needs native-speaker review
+        - "(?i)शॉर्टन\\s*किया\\s*गया\\s*असुरक्षित\\s*लिंक"
+        - "(?i)छोटा\\s*किया\\s*गया\\s*url\\s*लिंक"
+        - "(?i)bit\\.ly\\s+link\\s+par\\s+click\\s+kare"
+        - "(?i)short\\s+link\\s+kholo"
+
+  - id: LINK_IP_OR_ODD_PORT
+    label: "Raw IP Address or Non-Standard Port URL"
+    category: links
+    weight: 15.0
+    description: "Uses a raw numerical IP address or an unusual port (e.g., :8080, :8888, :5000) instead of a verified domain name."
+    advice: "Legitimate organizations never direct customers to raw IP addresses or non-standard port numbers."
+    patterns:
+      en:
+        - "(?i)https?://\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(?::\\d{2,5})?(?:/[^\\s]*)?"
+        - "(?i)https?://[a-zA-Z0-9.-]+:(?:8080|8888|5000|8443|9000|3000)/[^\\s]*"
+        - "(?i)direct\\s+ip\\s+link"
+      ta: # needs native-speaker review
+        - "(?i)நேரடி\\s*ஐபி\\s*முகவரி\\s*இணைப்பு"
+        - "(?i)ip\\s+address\\s+link\\s+irukku"
+        - "(?i)unusual\\s+port\\s+link"
+      hi: # needs native-speaker review
+        - "(?i)सीधा\\s*आईपी\\s*एड्रेस\\s*लिंक"
+        - "(?i)असामान्य\\s*पोर्ट\\s*वाला\\s*वेब\\s*पता"
+        - "(?i)ip\\s+address\\s+link\\s+hai"
+        - "(?i)raw\\s+ip\\s+url"
+
+  - id: LINK_LOOKALIKE_DOMAIN
+    label: "Spoofed or Lookalike Brand Domain"
+    category: links
+    weight: 25.0
+    description: "Domain mimics a trusted brand name with minor typos, extra words, or deceptive subdomains (e.g., sbi-support-online.com)."
+    advice: "Always inspect the root domain before entering any login information. Do not trust lookalike domains."
+    patterns:
+      en:
+        - "(?i)https?://[a-zA-Z0-9.-]*(?:sbi|hdfc|icici|axis|paytm|phonepe|gpay|amazon|flipkart|incometax|uidai)[a-zA-Z0-9.-]*(?:-support|-update|-verify|-kyc|-reward|-claim|login)[a-zA-Z0-9.-]*\\.[a-z]{2,}"
+        - "(?i)lookalike\\s+domain\\s+detected"
+        - "(?i)brand\\s+name\\s+in\\s+unrelated\\s+subdomain"
+      ta: # needs native-speaker review
+        - "(?i)போலி\\s*வங்கி\\s*அல்லது\\s*நிறுவன\\s*வலைத்தளம்"
+        - "(?i)lookalike\\s+domain\\s+irukku"
+        - "(?i)sbi\\s+poliyana\\s+domain"
+      hi: # needs native-speaker review
+        - "(?i)फर्जी\\s*या\\s*मिलता-जुलता\\s*ब्रांड\\s*डोमेन"
+        - "(?i)नकली\\s*बैंक\\s*वेबसाइट\\s*का\\s*लिंक"
+        - "(?i)lookalike\\s+domain\\s+hai"
+        - "(?i)fake\\s+bank\\s+link"
+
+  - id: LINK_YOUNG_DOMAIN
+    label: "Newly Registered Domain (<90 Days Old)"
+    category: links
+    weight: 15.0
+    description: "Domain was registered very recently, a strong indicator of disposable phishing or fraud infrastructure."
+    advice: "Established banking, logistics, and retail institutions operate on domains established years or decades ago."
+    patterns:
+      en:
+        - "(?i)domain\\s+(?:was\\s+registered|created)\\s+(?:less\\s+than|under|within)\\s+90\\s+days"
+        - "(?i)young\\s+domain\\s+detected"
+        - "(?i)freshly\\s+registered\\s+website"
+      ta: # needs native-speaker review
+        - "(?i)சமீபத்தில்\\s*பதிவு\\s*செய்யப்பட்ட\\s*வலைத்தளம்"
+        - "(?i)pudhu\\s+domain\\s+register\\s+pannirukanga"
+        - "(?i)young\\s+domain\\s+warning"
+      hi: # needs native-speaker review
+        - "(?i)हाल\\s*ही\\s*में\\s*रजिस्टर्ड\\s*नया\\s*डोमेन"
+        - "(?i)90\\s*दिन\\s*से\\s*कम\\s*पुराना\\s*डोमेन"
+        - "(?i)naya\\s+domain\\s+hai"
+        - "(?i)fresh\\s+domain\\s+created"
+
+  - id: LINK_THREAT_FEED_MATCH
+    label: "Domain Flagged on Security Threat Feeds"
+    category: links
+    weight: 40.0
+    description: "URL or host is blacklisted in active threat intelligence databases (Google Safe Browsing, URLhaus, or phishing feeds)."
+    advice: "Security services have actively confirmed this URL hosts malware, credential harvesters, or scam forms. Do not open."
+    patterns:
+      en:
+        - "(?i)flagged\\s+(?:on|by)\\s+(?:urlhaus|google\\s+safe\\s+browsing|threat\\s+feed|blacklist)"
+        - "(?i)known\\s+malicious\\s+url"
+        - "(?i)phishing\\s+url\\s+detected\\s+by\\s+security\\s+feed"
+      ta: # needs native-speaker review
+        - "(?i)பாதுகாப்பு\\s*அமைப்புகளால்\\s*தடை\\s*செய்யப்பட்ட\\s*இணைப்பு"
+        - "(?i)malicious\\s+link\\s+threat\\s+feed\\s+match"
+        - "(?i)block\\s+seiyapattadha\\s+link"
+      hi: # needs native-speaker review
+        - "(?i)सुरक्षा\\s*थ्रेट\\s*फीड\\s*पर\\s*ब्लॉक\\s*किया\\s*गया\\s*लिंक"
+        - "(?i)ज्ञात\\s*खतरनाक\\s*या\\s*मैलवेयर\\s*url"
+        - "(?i)threat\\s+feed\\s+match\\s+hai"
+        - "(?i)malicious\\s+url\\s+blacklist"

@@ -1,0 +1,398 @@
+# ==============================================================================
+# ScamLens Brand Reference Database (brands.yaml)
+# ==============================================================================
+# Comprehensive directory of legitimate institutions, banks, payment services,
+# logistics carriers, government authorities, and technology platforms.
+# Used for lookalike domain detection, brand typosquatting, and impersonation checks.
+# ==============================================================================
+
+brands:
+  # ----------------------------------------------------------------------------
+  # 1. Banks & Financial Institutions
+  # ----------------------------------------------------------------------------
+  - id: sbi
+    name: State Bank of India
+    canonical_domains:
+      - onlinesbi.sbi
+      - sbi.co.in
+      - sbicard.com
+    keywords: ["sbi", "state bank of india", "yono"]
+    official_sms_senders: ["SBINB", "SBIPSG", "ATMSBI", "SBIINB", "SBISMS"]
+
+  - id: hdfc
+    name: HDFC Bank
+    canonical_domains:
+      - hdfcbank.com
+      - hdfc.com
+    keywords: ["hdfc", "hdfc bank"]
+    official_sms_senders: ["HDFCBK", "HDFCAL", "HDFCCC"]
+
+  - id: icici
+    name: ICICI Bank
+    canonical_domains:
+      - icicibank.com
+      - imobile.icicibank.com
+    keywords: ["icici", "icici bank", "imobile"]
+    official_sms_senders: ["ICICIB", "ICICIT", "ICICIS"]
+
+  - id: axis
+    name: Axis Bank
+    canonical_domains:
+      - axisbank.com
+    keywords: ["axis", "axis bank"]
+    official_sms_senders: ["AXISBK", "AXISIN"]
+
+  - id: kotak
+    name: Kotak Mahindra Bank
+    canonical_domains:
+      - kotak.com
+      - kotakcherry.com
+    keywords: ["kotak", "kotak 811"]
+    official_sms_senders: ["KOTAKB", "KOTAKK"]
+
+  - id: pnb
+    name: Punjab National Bank
+    canonical_domains:
+      - pnbindia.in
+      - netpnb.com
+    keywords: ["pnb", "punjab national bank"]
+    official_sms_senders: ["PNBSMS", "PNBBNK"]
+
+  - id: bob
+    name: Bank of Baroda
+    canonical_domains:
+      - bankofbaroda.in
+      - bobworld.com
+    keywords: ["bob", "bank of baroda", "bob world"]
+    official_sms_senders: ["BOBSMS", "BARODA"]
+
+  - id: canara
+    name: Canara Bank
+    canonical_domains:
+      - canarabank.com
+    keywords: ["canara", "canara bank"]
+    official_sms_senders: ["CANBNK", "CANARA"]
+
+  - id: indusind
+    name: IndusInd Bank
+    canonical_domains:
+      - indusind.com
+    keywords: ["indusind", "indusind bank"]
+    official_sms_senders: ["INDBNK", "INDUSD"]
+
+  - id: union_bank
+    name: Union Bank of India
+    canonical_domains:
+      - unionbankofindia.co.in
+    keywords: ["union bank", "vyom"]
+    official_sms_senders: ["UBINBK", "UNIONB"]
+
+  # ----------------------------------------------------------------------------
+  # 2. UPI Apps, Wallets & FinTech
+  # ----------------------------------------------------------------------------
+  - id: gpay
+    name: Google Pay
+    canonical_domains:
+      - pay.google.com
+      - g.co
+    keywords: ["google pay", "gpay", "tez"]
+    official_sms_senders: ["GOOGLP", "GPAYIN"]
+
+  - id: phonepe
+    name: PhonePe
+    canonical_domains:
+      - phonepe.com
+    keywords: ["phonepe", "phone pe"]
+    official_sms_senders: ["PHONPE", "PHONEP"]
+
+  - id: paytm
+    name: Paytm
+    canonical_domains:
+      - paytm.com
+      - paytmbank.com
+    keywords: ["paytm"]
+    official_sms_senders: ["PAYTM", "PAYTMB"]
+
+  - id: bhim
+    name: BHIM UPI (NPCI)
+    canonical_domains:
+      - bhimupi.org.in
+      - npci.org.in
+    keywords: ["bhim", "bhim upi", "npci"]
+    official_sms_senders: ["BHIMUP", "NPCIIN"]
+
+  - id: amazon_pay
+    name: Amazon Pay
+    canonical_domains:
+      - amazon.in
+    keywords: ["amazon pay"]
+    official_sms_senders: ["AMZNPAY", "AMAZON"]
+
+  - id: cred
+    name: CRED
+    canonical_domains:
+      - cred.club
+    keywords: ["cred"]
+    official_sms_senders: ["CREDIN", "CREDCL"]
+
+  - id: mobikwik
+    name: MobiKwik
+    canonical_domains:
+      - mobikwik.com
+    keywords: ["mobikwik"]
+    official_sms_senders: ["MOBIKW"]
+
+  # ----------------------------------------------------------------------------
+  # 3. Logistics & Courier Carriers
+  # ----------------------------------------------------------------------------
+  - id: india_post
+    name: India Post
+    canonical_domains:
+      - indiapost.gov.in
+      - dte.cept.gov.in
+    keywords: ["india post", "dak", "speed post", "postal"]
+    official_sms_senders: ["INDPST", "DOPIND", "POSTAL"]
+
+  - id: fedex
+    name: FedEx
+    canonical_domains:
+      - fedex.com
+    keywords: ["fedex"]
+    official_sms_senders: ["FEDEX", "FEDEXC"]
+
+  - id: blue_dart
+    name: Blue Dart
+    canonical_domains:
+      - bluedart.com
+    keywords: ["blue dart", "bluedart"]
+    official_sms_senders: ["BLDART", "BLUDART"]
+
+  - id: delhivery
+    name: Delhivery
+    canonical_domains:
+      - delhivery.com
+    keywords: ["delhivery"]
+    official_sms_senders: ["DLHVRY", "DELHIV"]
+
+  - id: dtdc
+    name: DTDC Express
+    canonical_domains:
+      - dtdc.in
+      - dtdc.com
+    keywords: ["dtdc"]
+    official_sms_senders: ["DTDCCP", "DTDCIN"]
+
+  - id: dhl
+    name: DHL Express
+    canonical_domains:
+      - dhl.com
+      - dhl.co.in
+    keywords: ["dhl"]
+    official_sms_senders: ["DHLIND", "DHLEXP"]
+
+  - id: xpressbees
+    name: Xpressbees
+    canonical_domains:
+      - xpressbees.com
+    keywords: ["xpressbees"]
+    official_sms_senders: ["XPRESS", "XPRSBS"]
+
+  # ----------------------------------------------------------------------------
+  # 4. E-Commerce & Quick Commerce
+  # ----------------------------------------------------------------------------
+  - id: amazon
+    name: Amazon
+    canonical_domains:
+      - amazon.in
+      - amazon.com
+      - amzn.to
+      - amzn.in
+    keywords: ["amazon", "prime"]
+    official_sms_senders: ["AMAZON", "AMZNIN"]
+
+  - id: flipkart
+    name: Flipkart
+    canonical_domains:
+      - flipkart.com
+      - fkrt.it
+    keywords: ["flipkart", "supercoin"]
+    official_sms_senders: ["FLPKRT", "FLIPKT"]
+
+  - id: meesho
+    name: Meesho
+    canonical_domains:
+      - meesho.com
+    keywords: ["meesho"]
+    official_sms_senders: ["MEESHO"]
+
+  - id: myntra
+    name: Myntra
+    canonical_domains:
+      - myntra.com
+    keywords: ["myntra"]
+    official_sms_senders: ["MYNTRA"]
+
+  - id: swiggy
+    name: Swiggy
+    canonical_domains:
+      - swiggy.com
+    keywords: ["swiggy", "instamart"]
+    official_sms_senders: ["SWIGGY", "SWGAPP"]
+
+  - id: zomato
+    name: Zomato
+    canonical_domains:
+      - zomato.com
+      - blinkit.com
+    keywords: ["zomato", "blinkit"]
+    official_sms_senders: ["ZOMATO", "BLNKIT"]
+
+  - id: jiomart
+    name: JioMart
+    canonical_domains:
+      - jiomart.com
+    keywords: ["jiomart", "reliance digital"]
+    official_sms_senders: ["JIOMRT"]
+
+  - id: tata_neu
+    name: Tata Neu
+    canonical_domains:
+      - tataneu.com
+      - tata.com
+    keywords: ["tata neu", "tata digital"]
+    official_sms_senders: ["TATNEU"]
+
+  # ----------------------------------------------------------------------------
+  # 5. Telecom Providers
+  # ----------------------------------------------------------------------------
+  - id: jio
+    name: Reliance Jio
+    canonical_domains:
+      - jio.com
+    keywords: ["jio", "reliance jio", "myjio"]
+    official_sms_senders: ["JIOINF", "RELIANCE"]
+
+  - id: airtel
+    name: Bharti Airtel
+    canonical_domains:
+      - airtel.in
+      - airtel.com
+      - airtelbank.com
+    keywords: ["airtel", "airtel payments bank", "thanks app"]
+    official_sms_senders: ["AIRTEL", "AIRBNK"]
+
+  - id: vi
+    name: Vodafone Idea (Vi)
+    canonical_domains:
+      - myvi.in
+    keywords: ["vodafone", "idea", "vi"]
+    official_sms_senders: ["VILIND", "MYVIIN"]
+
+  - id: bsnl
+    name: BSNL
+    canonical_domains:
+      - bsnl.co.in
+    keywords: ["bsnl"]
+    official_sms_senders: ["BSNLIN"]
+
+  # ----------------------------------------------------------------------------
+  # 6. Government Services & Portals
+  # ----------------------------------------------------------------------------
+  - id: income_tax
+    name: Income Tax Department India
+    canonical_domains:
+      - incometax.gov.in
+      - tin-nsdl.com
+    keywords: ["income tax", "pan card", "itr", "nsdl", "utiitsl"]
+    official_sms_senders: ["ITDEPT", "NSDLTR", "UTIITS"]
+
+  - id: epfo
+    name: Employees' Provident Fund Organisation (EPFO)
+    canonical_domains:
+      - epfindia.gov.in
+    keywords: ["epfo", "epf", "uan", "pf balance"]
+    official_sms_senders: ["EPFOHO", "UANEPF"]
+
+  - id: uidai
+    name: Unique Identification Authority of India (UIDAI)
+    canonical_domains:
+      - uidai.gov.in
+      - myaadhaar.uidai.gov.in
+    keywords: ["uidai", "aadhaar", "myaadhaar"]
+    official_sms_senders: ["AADHAR", "UIDAI"]
+
+  - id: parivahan
+    name: Ministry of Road Transport & Highways (Parivahan)
+    canonical_domains:
+      - parivahan.gov.in
+      - echallan.parivahan.gov.in
+    keywords: ["parivahan", "echallan", "vahan", "sarathi"]
+    official_sms_senders: ["PRVHAN", "ECHALN"]
+
+  - id: cybercrime_portal
+    name: National Cybercrime Reporting Portal
+    canonical_domains:
+      - cybercrime.gov.in
+    keywords: ["cybercrime", "1930"]
+    official_sms_senders: ["CYBCRM"]
+
+  - id: sanchar_saathi
+    name: DoT Sanchar Saathi
+    canonical_domains:
+      - sancharsaathi.gov.in
+      - ceir.sancharsaathi.gov.in
+    keywords: ["sanchar saathi", "chakshu", "ceir"]
+    official_sms_senders: ["DOTIND"]
+
+  # ----------------------------------------------------------------------------
+  # 7. Big Tech & Online Platforms
+  # ----------------------------------------------------------------------------
+  - id: google
+    name: Google
+    canonical_domains:
+      - google.com
+      - google.co.in
+      - careers.google.com
+      - gmail.com
+    keywords: ["google", "gmail", "youtube"]
+    official_sms_senders: ["GOOGLE"]
+
+  - id: microsoft
+    name: Microsoft
+    canonical_domains:
+      - microsoft.com
+      - live.com
+      - office.com
+    keywords: ["microsoft", "office 365", "windows"]
+    official_sms_senders: ["MSFTIN", "MICROS"]
+
+  - id: apple
+    name: Apple
+    canonical_domains:
+      - apple.com
+      - icloud.com
+    keywords: ["apple", "icloud", "apple id"]
+    official_sms_senders: ["APPLE"]
+
+  - id: whatsapp
+    name: WhatsApp
+    canonical_domains:
+      - whatsapp.com
+      - wa.me
+    keywords: ["whatsapp"]
+    official_sms_senders: ["WHTSAP"]
+
+  - id: telegram
+    name: Telegram
+    canonical_domains:
+      - telegram.org
+      - t.me
+    keywords: ["telegram"]
+    official_sms_senders: ["TELEGR"]
+
+  - id: netflix
+    name: Netflix
+    canonical_domains:
+      - netflix.com
+    keywords: ["netflix"]
+    official_sms_senders: ["NETFLX"]

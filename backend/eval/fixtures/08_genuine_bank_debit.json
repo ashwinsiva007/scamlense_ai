@@ -1,0 +1,10 @@
+{
+  "id": "fixture_08_genuine_bank_debit",
+  "title": "Genuine Bank Masked Debit Transaction Alert",
+  "text": "Dear Customer, A/c **4589 has been debited for INR 450.00 at SWIGGY BANGALORE on 26-Oct-2026. Avl Bal: INR 18,250.00. If not done by you, forward this SMS to 9223150150 or call 1800112211.",
+  "sender": "HDFCBK",
+  "urls": [],
+  "ground_truth_label": "genuine",
+  "expected_band": "low_risk",
+  "description": "Standard transactional debit notification from registered bank SMS header with masked account number and remaining balance."
+}

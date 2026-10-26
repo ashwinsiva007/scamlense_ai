@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: scamlens-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MODE=${MODE:-mock}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMMA_MODEL=${GEMMA_MODEL:-google/gemma-4-9b-it}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:latest}
+      - SAFE_BROWSING_KEY=${SAFE_BROWSING_KEY:-}
+      - URLHAUS_KEY=${URLHAUS_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-8}
+      - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-20}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: scamlens-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Optional local LLM runner with Gemma 4, active only when --profile local is specified
+  ollama:
+    image: ollama/ollama:latest
+    container_name: scamlens-ollama
+    profiles:
+      - local
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

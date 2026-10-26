@@ -1,0 +1,113 @@
+category: impersonation
+description: "Rules detecting false representation of banks, government agencies, courier services, telecom operators, and tech companies."
+
+rules:
+  - id: IMPERSONATION_BANK_KYC
+    label: "Unofficial Bank Account KYC Suspension"
+    category: impersonation
+    weight: 25.0
+    description: "Impersonates bank security claiming account or netbanking will be suspended unless KYC is updated via external link."
+    advice: "Banks never send SMS with direct links to update PAN or KYC. Only complete KYC via your official bank branch or verified netbanking portal."
+    patterns:
+      en:
+        - "(?i)(?:dear\\s+customer|user),?\\s+your\\s+(?:sbi|hdfc|icici|pnb|axis|bob|kotak|canara|bank)\\s+account\\s+(?:kyc|pan)\\s+is\\s+(?:expired|pending|suspended)"
+        - "(?i)update\\s+(?:your\\s+)?(?:pan|aadhaar|kyc)\\s+immediately\\s+to\\s+avoid\\s+account\\s+block"
+        - "(?i)bank\\s+account\\s+blocked\\s+due\\s+to\\s+incomplete\\s+kyc"
+      ta: # needs native-speaker review
+        - "(?i)வங்கி\\s*கணக்கு\\s*கேஒய்சி\\s*(?:நிறுத்தப்பட்டது|காலாவதியானது)"
+        - "(?i)பான்\\s*கார்டை\\s*உடனே\\s*இணைக்கவும்"
+        - "(?i)bank\\s+kyc\\s+mudika\\s+link"
+        - "(?i)account\\s+block\\s+aagum\\s+kyc\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)बैंक\\s*खाता\\s*केवाईसी\\s*(?:अधूरा|बंद|निलंबित)\\s*है"
+        - "(?i)पैन\\s*कार्ड\\s*तुरंत\\s*अपडेट\\s*करें\\s*अन्यथा\\s*खाता\\s*बंद"
+        - "(?i)bank\\s+kyc\\s+update\\s+kare"
+        - "(?i)khata\\s+block\\s+ho\\s+jayega"
+
+  - id: IMPERSONATION_FAKE_COURIER
+    label: "Fake Courier Delivery or Customs Hold"
+    category: impersonation
+    weight: 25.0
+    description: "Impersonates courier companies (India Post, BlueDart, DTDC, FedEx, DHL) claiming an undelivered parcel or unpaid address fee."
+    advice: "Postal and courier services never send SMS from personal numbers requesting fees to update an address. Check tracking numbers on official portals."
+    patterns:
+      en:
+        - "(?i)(?:india\\s*post|bluedart|dtdc|fedex|dhl|delhivery)\\s*:?\\s*(?:your\\s+package|parcel|shipment)\\s+(?:cannot\\s+be\\s+delivered|on\\s+hold)"
+        - "(?i)parcel\\s+(?:is\\s+held|detained)\\s+(?:due\\s+to|at)\\s+(?:wrong\\s+address|unpaid\\s+customs|fee)"
+        - "(?i)update\\s+(?:your\\s+)?delivery\\s+address\\s+within\\s+\\d+\\s+hours"
+      ta: # needs native-speaker review
+        - "(?i)தபால்\\s*அல்லது\\s*கூரியர்\\s*பார்சல்\\s*நிறுத்தி\\s*வைக்கப்பட்டுள்ளது"
+        - "(?i)முகவரியை\\s*புதுப்பிக்கவும்"
+        - "(?i)courier\\s+parcel\\s+hold\\s+la\\s+irukku"
+        - "(?i)india\\s+post\\s+delivery\\s+fail"
+      hi: # needs native-speaker review
+        - "(?i)इंडिया\\s*पोस्ट|कूरियर\\s*पार्सल\\s*(?:अटका|रोका)\\s*गया\\s*है"
+        - "(?i)पता\\s*अधूरा\\s*होने\\s*के\\s*कारण\\s*पार्सल\\s*डिलीवर\\s*नहीं"
+        - "(?i)parcel\\s+deliver\\s+nahi\\s+hua\\s+address\\s+update\\s+karo"
+        - "(?i)courier\\s+ruk\\+gaya\\s+hai"
+
+  - id: IMPERSONATION_GOV_DEPARTMENT
+    label: "Fake Government Department or Tax Agency Notice"
+    category: impersonation
+    weight: 25.0
+    description: "Impersonates the Income Tax Department, CBI, Mumbai Police, ED, or RBI demanding immediate compliance."
+    advice: "Law enforcement and tax agencies never issue digital arrest warrants over WhatsApp, Telegram, or Skype. Report to cybercrime.gov.in."
+    patterns:
+      en:
+        - "(?i)(?:income\\s*tax\\s*department|cbi|ed|rbi|cyber\\s*crime\\s*cell|mumbai\\s*police|delhi\\s*police)\\s*(?:notice|summons|order)"
+        - "(?i)digital\\s+arrest\\s+warrant\\s+issued\\s+against\\s+you"
+        - "(?i)tax\\s+refund\\s+(?:approved|pending)\\s+click\\s+here\\s+to\\s+claim"
+      ta: # needs native-speaker review
+        - "(?i)வருமான\\s*வரித்துறை\\s*அல்லது\\s*காவல்துறை\\s*அறிவிப்பு"
+        - "(?i)டிஜிட்டல்\\s*கைது\\s*வாரண்ட்"
+        - "(?i)police\\s+summons\\s+vandhurukku"
+        - "(?i)income\\s+tax\\s+refund\\s+claim\\s+panna"
+      hi: # needs native-speaker review
+        - "(?i)आयकर\\s*विभाग|सीबीआई|पुलिस\\s*विभाग\\s*का\\s*नोटिस"
+        - "(?i)डिजिटल\\s*अरेस्ट\\s*वारंट\\s*जारी"
+        - "(?i)tax\\s+refund\\s+pene\\s+ke\\s+liye\\s+click\\s+kare"
+        - "(?i)police\\s+arrest\\s+notice"
+
+  - id: IMPERSONATION_TELECOM_SIM
+    label: "Fake Telecom SIM Deactivation or 5G Upgrade"
+    category: impersonation
+    weight: 25.0
+    description: "Impersonates telecom operators (Jio, Airtel, Vi, BSNL) warning that your SIM card or e-KYC will be disconnected."
+    advice: "Telecom providers send notifications only from official sender IDs (e.g., AD-JIO, VK-AIRTEL). Personal 10-digit mobile numbers are unauthorized."
+    patterns:
+      en:
+        - "(?i)(?:jio|airtel|vi|vodafone|bsnl|trai)\\s*:?\\s*(?:your\\s+sim|e-kyc|service)\\s+(?:will\\s+be\\s+blocked|deactivated|suspended)"
+        - "(?i)sim\\s+(?:deactivation|block)\\s+within\\s+\\d+\\s*hours?\\s+call\\s+(?:customer\\s+care|officer)"
+        - "(?i)upgrade\\s+your\\s+4g\\s+sim\\s+to\\s+5g\\s+immediately"
+      ta: # needs native-speaker review
+        - "(?i)சிம்\\s*கார்டு\\s*இணைப்பு\\s*துண்டிக்கப்படும்"
+        - "(?i)ஜியோ\\s*அல்லது\\s*ஏர்டெல்\\s*கேஒய்சி\\s*முடிக்கவும்"
+        - "(?i)sim\\s+block\\s+aaga\\s+pogudhu"
+        - "(?i)5g\\s+sim\\s+upgrade\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)सिम\\s*कार्ड\\s*(?:ब्लॉक|बंद)\\s*हो\\s*जाएगा"
+        - "(?i)जियो|एयरटेल\\s*ई-केवाईसी\\s*तुरंत\\s*अपडेट\\s*करें"
+        - "(?i)sim\\s+band\\s+hone\\s+se\\s+bachaye"
+        - "(?i)sim\\s+deactivation\\s+notice"
+
+  - id: IMPERSONATION_BIGTECH_SECURITY
+    label: "Fake Tech Support or Security Compromise Warning"
+    category: impersonation
+    weight: 25.0
+    description: "Claims to be Google, Microsoft, Meta/WhatsApp, or Apple security alleging unauthorized login or account breach."
+    advice: "Big tech companies do not provide toll-free numbers or external bit.ly links to verify compromised passwords."
+    patterns:
+      en:
+        - "(?i)(?:google|microsoft|apple|whatsapp|meta|amazon)\\s+(?:security\\s+alert|team|support)\\s*:?\\s*(?:unauthorized\\s+login|compromised|hacked)"
+        - "(?i)someone\\s+has\\s+your\\s+password.*verify\\s+identity\\s+to\\s+restore"
+        - "(?i)call\\s+toll[- ]free\\s+tech\\s+support\\s+now"
+      ta: # needs native-speaker review
+        - "(?i)கூகுள்\\s*அல்லது\\s*வாட்ஸ்அப்\\s*பாதுகாப்பு\\s*எச்சரிக்கை"
+        - "(?i)கணக்கு\\s*முடக்கப்பட்டுள்ளது.*உடனே\\s*தொடர்பு\\s*கொள்ளவும்"
+        - "(?i)whatsapp\\s+account\\s+ban\\s+aaga\\s+podhu"
+        - "(?i)tech\\s+support\\s+call\\s+pannunga"
+      hi: # needs native-speaker review
+        - "(?i)गूगल|व्हाट्सएप|माइक्रोसॉफ्ट\\s*सुरक्षा\\s*अलर्ट"
+        - "(?i)आपका\\s*खाता\\s*हैक\\s*हो\\s*गया\\s*है.*तुरंत\\s*संपर्क\\s*करें"
+        - "(?i)whatsapp\\s+account\\s+hack\\s+ho\\s+gaya"
+        - "(?i)security\\s+team\\s+se\\s+sampark\\s+kare"

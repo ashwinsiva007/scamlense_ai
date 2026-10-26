@@ -1,0 +1,114 @@
+category: too_good
+description: "Rules detecting promises of outsized, unrealistic rewards, fraudulent lotteries, daily task schemes, and guaranteed investment returns."
+
+rules:
+  - id: TOO_GOOD_HIGH_PAY_NO_INTERVIEW
+    label: "High Salary with No Interview or Experience"
+    category: too_good
+    weight: 20.0
+    description: "Offers high remuneration without requiring prior experience, formal resume review, or proper interview."
+    advice: "Legitimate employers never offer high salaries without technical screening, structured interviews, or formal offer letters."
+    patterns:
+      en:
+        - "(?i)(?:earn|salary|stipend)\\s+(?:of\\s+)?(?:rs\\.?|inr|₹)?\\s*[2-9][0-9]{3,5}\\s*(?:per\\s+day|daily|weekly)\\s+(?:without|no)\\s+(?:interview|experience|skills)"
+        - "(?i)(?:high\\s+salary|part\\s*time\\s*job|earn\\s+money).*no\\s*(?:interview|experience|qualification|resume)"
+        - "(?i)daily\\s+salary\\s+credited\\s+instantly"
+      ta: # needs native-speaker review
+        - "(?i)நேர்காணல்\\s*இல்லாமல்\\s*அதிக\\s*சம்பளம்"
+        - "(?i)அனுபவம்\\s*தேவையில்லை.*தினசரி\\s*வருமானம்"
+        - "(?i)interview\\s+illama\\s+high\\s+salary"
+        - "(?i)dhinamum\\s+5000\\s+sambalam"
+      hi: # needs native-speaker review
+        - "(?i)बिना\\s*इंटरव्यू\\s*मोटा\\s*वेतन"
+        - "(?i)कोई\\s*अनुभव\\s*की\\s*ज़रूरत\\s*नहीं.*रोजाना\\s*कमाएं"
+        - "(?i)bina\\s+interview\\s+ke\\s+job"
+        - "(?i)rozana\\s+ghar\\s+baithe\\s+kamaye"
+
+  - id: TOO_GOOD_GUARANTEED_RETURNS
+    label: "Guaranteed Outsized Investment Returns"
+    category: too_good
+    weight: 20.0
+    description: "Claims guaranteed, risk-free profit or fixed percentage daily returns on small capital deposits."
+    advice: "Regulated investments never guarantee fixed high returns. SEBI warns that guaranteed return schemes are illegal Ponzi frauds."
+    patterns:
+      en:
+        - "(?i)(?:guaranteed|100%|sure)\\s+(?:\\d+%\\s+)?(?:return|profit|gain)s?\\s*(?:of\\s+)?(?:[2-9][0-9]%|100%|200%|daily)?"
+        - "(?i)invest\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s+and\\s+get\\s+(?:double|triple|daily\\s+profit)"
+        - "(?i)zero\\s+risk\\s+guaranteed\\s+profit"
+      ta: # needs native-speaker review
+        - "(?i)உத்தரவாத\\s*லாபம்"
+        - "(?i)முதலீடு\\s*செய்து\\s*இருமடங்கு\\s*பெறுங்கள்"
+        - "(?i)guaranteed\\s+profit\\s+kedaikkum"
+        - "(?i)double\\s+returns\\s+nichayam"
+      hi: # needs native-speaker review
+        - "(?i)गारंटीड\\s*रिटर्न|निश्चित\\s*मुनाफा"
+        - "(?i)निवेश\\s*करें\\s*और\\s*पैसे\\s*दोगुने\\s*पाएं"
+        - "(?i)guaranteed\\s+munafa\\s+milega"
+        - "(?i)paisa\\s+double\\s+hoga"
+
+  - id: TOO_GOOD_LOTTERY_PRIZE
+    label: "Unsolicited Lottery or Lucky Draw Winner"
+    category: too_good
+    weight: 20.0
+    description: "Informs recipient that their mobile number or name has won a large lottery, car, or lucky draw they never entered."
+    advice: "You cannot win a lottery or contest you never purchased a ticket for. Government/KBC lotteries over WhatsApp are scams."
+    patterns:
+      en:
+        - "(?i)(?:congratulations|selected|you\\s+have)?.*(?:won|winner\\s+of).*lottery"
+        - "(?i)(?:congratulations|selected)\\s+.*(?:won|winner\\s+of)\\s+(?:rs\\.?|inr|₹|usd)?\\s*[1-9][0-9]{4,7}\\s*(?:lottery|lucky\\s*draw|kbc|car)"
+        - "(?i)your\\s+(?:mobile\\s+number|sim\\s+card)\\s+has\\s+won\\s+(?:first\\s+prize|jackpot)"
+        - "(?i)kbc\\s+all\\s+india\\s+sim\\s+lucky\\s+draw"
+      ta: # needs native-speaker review
+        - "(?i)குலுக்கலில்\\s*பரிசு\\s*வென்றுள்ளீர்கள்"
+        - "(?i)ரூபாய்\\s*லட்சம்\\s*லாட்டரி\\s*பரிசு"
+        - "(?i)lottery\\s+parisu\\s+jeichiteenga"
+        - "(?i)kbc\\s+lucky\\s+draw\\s+winner"
+      hi: # needs native-speaker review
+        - "(?i)बधाई\\s*हो.*लॉटरी\\s*जीती\\s*है"
+        - "(?i)लकी\\s*ड्रॉ\\s*में\\s*आपका\\s*नंबर\\s*चुना\\s*गया"
+        - "(?i)kbc\\s+lottery\\s+nikli\\s+hai"
+        - "(?i)aapne\\s+lucky\\s+draw\\s+jeeta\\s+hai"
+
+  - id: TOO_GOOD_DAILY_TASKS_YOUTUBE
+    label: "Earn by Liking Videos or Rating Hotels Scheme"
+    category: too_good
+    weight: 20.0
+    description: "Offers daily payouts for trivial tasks such as liking YouTube videos, subscribing to channels, or rating Google Maps locations."
+    advice: "This is the classic 'Task Scam'. Scammers pay tiny amounts first to gain trust, then demand thousands to unlock VIP tasks."
+    patterns:
+      en:
+        - "(?i)(?:like|subscribe|rate)\\s+(?:youtube\\s+videos?|google\\s+review|merchant|hotel)\\s+(?:and|to)\\s+earn"
+        - "(?i)earn\\s+(?:rs\\.?|inr|₹)?\\s*\\d{3,4}\\s+per\\s+(?:like|task|screenshot|video)"
+        - "(?i)part\\s*time\\s*telegram\\s*task\\s*job"
+      ta: # needs native-speaker review
+        - "(?i)வீடியோக்களை\\s*லைக்\\s*செய்து\\s*பணம்\\s*சம்பாதிக்கவும்"
+        - "(?i)தினசரி\\s*டாஸ்க்\\s*முடித்து\\s*வருமானம்"
+        - "(?i)video\\s+like\\s+panni\\s+kaasu"
+        - "(?i)telegram\\s+task\\s+job"
+      hi: # needs native-speaker review
+        - "(?i)वीडियो\\s*लाइक\\s*करके\\s*पैसे\\s*कमाएं"
+        - "(?i)यूट्यूब\\s*लाइक\\s*टास्क\\s*जॉब"
+        - "(?i)like\\s+karo\\s+aur\\s+paise\\s+kamao"
+        - "(?i)per\\s+task\\s+paise\\s+milenge"
+
+  - id: TOO_GOOD_CRYPTO_DOUBLING
+    label: "Cryptocurrency Doubling or Mining Scheme"
+    category: too_good
+    weight: 20.0
+    description: "Promotes automated crypto doubling bots, Telegram arbitrage signals, or offshore cloud mining schemes."
+    advice: "Crypto doubling schemes are 100% fraudulent. Once crypto is transferred to their wallet address, it cannot be reversed."
+    patterns:
+      en:
+        - "(?i)(?:double\\s+your|multiply)\\s+(?:bitcoin|btc|usdt|crypto|eth)\\s+in\\s+(?:24\\s*hours|few\\s*minutes)"
+        - "(?i)crypto\\s+(?:arbitrage|trading\\s*bot)\\s+(?:guaranteed|instant)\\s+daily\\s+payout"
+        - "(?i)send\\s+(?:usdt|crypto)\\s+and\\s+receive\\s+double\\s+bonus"
+      ta: # needs native-speaker review
+        - "(?i)கிரிப்டோ\\s*முதலீடு\\s*இருமடங்கு"
+        - "(?i)பிட்காயின்\\s*இரட்டிப்பு"
+        - "(?i)crypto\\s+double\\s+aagum"
+        - "(?i)usdt\\s+anupinal\\s+double"
+      hi: # needs native-speaker review
+        - "(?i)क्रिप्टो\\s*डबल\\s*करने\\s*की\\s*योजना"
+        - "(?i)बिटकॉइन\\s*दोगुना\\s*करें"
+        - "(?i)crypto\\s+double\\s+hoga"
+        - "(?i)usdt\\s+invest\\s+karo\\s+munafa\\s+paao"

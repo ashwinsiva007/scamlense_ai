@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScamLensRulePack",
+  "type": "object",
+  "required": ["category", "rules"],
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "money_demands",
+        "credentials",
+        "urgency_threat",
+        "too_good",
+        "impersonation",
+        "links",
+        "sender",
+        "document_quality",
+        "payment_screenshot",
+        "reducers"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "category", "weight", "description", "advice", "patterns"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 3
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "money_demands",
+              "credentials",
+              "urgency_threat",
+              "too_good",
+              "impersonation",
+              "links",
+              "sender",
+              "document_quality",
+              "payment_screenshot",
+              "reducers"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "advice": {
+            "type": "string"
+          },
+          "patterns": {
+            "type": "object",
+            "required": ["en", "ta", "hi"],
+            "properties": {
+              "en": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "ta": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "hi": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

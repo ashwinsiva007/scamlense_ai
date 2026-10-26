@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "title": "ScamLens",
+    "tagline": "Explainable Scam Intelligence",
+    "home": "Home",
+    "howItWorks": "How It Works",
+    "benchmarks": "Benchmarks",
+    "privacy": "Privacy Guarantee",
+    "about": "About"
+  },
+  "hero": {
+    "badge": "Privacy-First • Open-Source • Gemma 4 Powered",
+    "title": "Spot Scam Signals Before You Pay",
+    "subtitle": "Upload a screenshot or paste text of a suspicious offer letter, courier SMS, or payment confirmation. AI reads and explains; transparent rules score."
+  },
+  "form": {
+    "uploadTab": "Upload Screenshot",
+    "pasteTab": "Paste Text / SMS",
+    "dragDrop": "Drag & drop screenshot here, or click to browse",
+    "fileHint": "PNG, JPEG or WebP up to 8MB. Processed in-memory, never stored.",
+    "textPlaceholder": "Paste the suspicious message, job offer, or payment confirmation text here...",
+    "languageLabel": "Explanation Language",
+    "modeLabel": "Execution Mode",
+    "modeMock": "Mock (Instant Demo)",
+    "modeCloud": "Cloud (Gemini)",
+    "modeLocal": "Local (Ollama)",
+    "analyzeBtn": "Analyze For Red Flags",
+    "analyzing": "Analyzing Evidence..."
+  },
+  "results": {
+    "title": "Analysis Result",
+    "rawJson": "Raw API Response (Contract Compliant)",
+    "scoreLabel": "Risk Score",
+    "bandLow": "No Major Red Flags Found",
+    "bandSuspicious": "Suspicious Patterns Detected",
+    "bandScam": "Likely Scam",
+    "bandInsufficient": "Insufficient Information",
+    "evidenceHeader": "Quoted Red Flags & Evidence",
+    "familyAlertHeader": "Shareable Family Alert Card",
+    "nextStepsHeader": "Immediate Next Steps",
+    "verifiersHeader": "Tool & Domain Verifications",
+    "copyAlert": "Copy Family Alert",
+    "alertCopied": "Copied to clipboard!"
+  },
+  "footer": {
+    "disclaimer": "ScamLens is an automated open-source educational tool. Absence of detected red flags does not guarantee safety. In the event of cyber fraud in India, dial 1930 immediately or visit cybercrime.gov.in.",
+    "linksHeader": "Resources",
+    "rights": "Apache-2.0 License • Open Source Community"
+  }
+}

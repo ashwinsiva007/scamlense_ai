@@ -1,0 +1,10 @@
+{
+  "id": "fixture_09_genuine_otp_sms",
+  "title": "Genuine Bank Login OTP SMS with Security Warning",
+  "text": "548921 is your secret OTP for login to your SBI NetBanking portal. Valid for 10 minutes. Bank never asks for OTP. Do not share with anyone.",
+  "sender": "SBINB",
+  "urls": [],
+  "ground_truth_label": "genuine",
+  "expected_band": "low_risk",
+  "description": "Standard two-factor authentication token containing explicit security warning advising recipient never to share it."
+}

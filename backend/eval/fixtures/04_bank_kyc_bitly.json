@@ -1,0 +1,10 @@
+{
+  "id": "fixture_04_bank_kyc_bitly",
+  "title": "Bank Account KYC Blocked with Shortened Bitly Link",
+  "text": "Dear customer, your SBI account KYC is suspended. Your netbanking will be deactivated within 12 hours. Update your pan card immediately to unblock your account: click https://bit.ly/sbi-pan-kyc-verify",
+  "sender": "+919876543210",
+  "urls": ["https://bit.ly/sbi-pan-kyc-verify"],
+  "ground_truth_label": "scam",
+  "expected_band": "likely_scam",
+  "description": "Bank KYC phishing lure sent from a 10-digit number with a shortened URL and suspension threat."
+}
