@@ -81,9 +81,16 @@ class CloudGeminiClient(ModelClient):
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
     ):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = model_name or settings.GEMMA_MODEL
-        if not self.api_key or not self.api_key.strip():
+        self.api_key = (api_key or settings.GEMINI_API_KEY).strip()
+        raw_model = (model_name or settings.GEMMA_MODEL).strip()
+        if "gemma-4-9b-it" in raw_model or raw_model == "google/gemma-4-9b-it" or not raw_model:
+            self.model_name = "gemini-3-flash-preview"
+        elif raw_model.startswith("google/"):
+            self.model_name = raw_model.replace("google/", "")
+        else:
+            self.model_name = raw_model
+
+        if not self.api_key:
             raise ModelAuthError("GEMINI_API_KEY is not configured or is empty.")
 
     async def generate(
@@ -99,16 +106,7 @@ class CloudGeminiClient(ModelClient):
 
         client = genai.Client(api_key=self.api_key)
 
-        # Build contents list
-        contents: List[Any] = []
-        if images:
-            for img_bytes in images:
-                contents.append(
-                    types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")
-                )
-        contents.append(prompt)
-
-        async def _execute_call(use_system_instruction: bool, user_prompt: str) -> str:
+        async def _execute_call(use_system_instruction: bool, user_prompt: str, target_model: str, use_json_mime: bool) -> str:
             call_contents = []
             if images:
                 for img_bytes in images:
@@ -120,7 +118,7 @@ class CloudGeminiClient(ModelClient):
             config_kwargs: Dict[str, Any] = {
                 "temperature": temperature,
             }
-            if json_mode:
+            if use_json_mime and not ("gemma" in target_model.lower()):
                 config_kwargs["response_mime_type"] = "application/json"
 
             if use_system_instruction and system_instruction:
@@ -128,27 +126,34 @@ class CloudGeminiClient(ModelClient):
 
             config = types.GenerateContentConfig(**config_kwargs)
 
-            # Enforce 12s timeout per attempt to guarantee sub-15s pipeline response
+            # Enforce 25s timeout per attempt for multimodal extraction
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model=self.model_name,
+                    model=target_model,
                     contents=call_contents,
                     config=config,
                 ),
-                timeout=12.0,
+                timeout=25.0,
             )
 
             if not response or not response.text:
                 raise ModelClientError("Model returned an empty response.")
             return response.text
 
-        # First attempt (with 1 retry on transient error)
+        # First attempt (with 1 retry on transient error or model fallback)
+        curr_model = self.model_name
+        # If images are provided and current model is text-only Gemma, automatically route to gemini-3-flash-preview
+        if images and "gemma" in curr_model.lower():
+            curr_model = "gemini-3-flash-preview"
+
         for attempt in range(2):
             try:
                 try:
                     return await _execute_call(
                         use_system_instruction=bool(system_instruction),
                         user_prompt=prompt,
+                        target_model=curr_model,
+                        use_json_mime=json_mode,
                     )
                 except Exception as inner_err:
                     err_msg = str(inner_err).lower()
@@ -158,15 +163,24 @@ class CloudGeminiClient(ModelClient):
                         or "system_instruction" in err_msg
                         or "unsupported field" in err_msg
                     ):
-                        merged = f"System Instruction:\n{system_instruction}\n\nTask:\n{prompt}"
                         return await _execute_call(
                             use_system_instruction=False,
-                            user_prompt=merged,
+                            user_prompt=f"System Instruction:\n{system_instruction}\n\nTask:\n{prompt}",
+                            target_model=curr_model,
+                            use_json_mime=json_mode,
+                        )
+                    # If json mime type rejected, retry without response_mime_type
+                    if json_mode and ("500" in err_msg or "mime" in err_msg or "schema" in err_msg or "internal" in err_msg):
+                        return await _execute_call(
+                            use_system_instruction=False,
+                            user_prompt=f"{prompt}\n\nReturn strictly valid JSON only.",
+                            target_model=curr_model,
+                            use_json_mime=False,
                         )
                     raise inner_err
             except asyncio.TimeoutError as te:
                 if attempt == 0:
-                    await asyncio.sleep(1.5)
+                    await asyncio.sleep(1.0)
                     continue
                 raise ModelTimeoutError("Cloud Gemini request timed out after 30 seconds.") from te
             except Exception as e:
@@ -175,8 +189,9 @@ class CloudGeminiClient(ModelClient):
                     raise ModelRateLimitError(f"Cloud Gemini rate limit exceeded: {e}") from e
                 if "401" in err_msg or "403" in err_msg or "api_key" in err_msg:
                     raise ModelAuthError(f"Cloud Gemini authentication error: {e}") from e
-                if attempt == 0 and ("503" in err_msg or "500" in err_msg or "connection" in err_msg):
-                    await asyncio.sleep(1.5)
+                if attempt == 0 and ("404" in err_msg or "not found" in err_msg or "no longer available" in err_msg or "503" in err_msg or "500" in err_msg):
+                    curr_model = "gemini-3-flash-preview"
+                    await asyncio.sleep(0.5)
                     continue
                 raise ModelUnavailableError(f"Cloud Gemini inference failed: {e}") from e
 
