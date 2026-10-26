@@ -63,6 +63,10 @@ export interface HealthResponse {
   status: string;
   mode: string;
   model: string;
+  model_name?: string;
+  key_configured?: boolean;
+  key_length?: number;
+  sdk_version?: string;
   ollama_reachable: boolean;
   cloud_key_set: boolean;
 }
@@ -95,8 +99,13 @@ export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  // In the browser (e.g. Vercel deployment), relative /api URLs route cleanly to same origin
+  // In the browser
   if (typeof window !== "undefined") {
+    // If running locally, direct API requests to FastAPI on port 8000
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:8000";
+    }
+    // On Vercel or cloud multi-service, relative /api rewrites to backend service
     return "";
   }
   return "http://localhost:8000";

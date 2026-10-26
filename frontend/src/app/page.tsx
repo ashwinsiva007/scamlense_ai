@@ -17,6 +17,7 @@ import { useT, Language } from "@/context/LanguageContext";
 import {
   analyzeMessage,
   loadDemoResult,
+  getHealth,
   AnalyzeResponse,
   Mode,
   ApiNetworkError,
@@ -99,6 +100,21 @@ export default function HomePage() {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [result, validateAndSetFile, toast]);
+
+  // Check backend health on mount to detect if cloud key is configured
+  useEffect(() => {
+    getHealth()
+      .then((health) => {
+        // If cloud key is not set in this deployment, default to demo mode so samples work instantly
+        if (!health.key_configured) {
+          setIsDemoMode(true);
+        }
+      })
+      .catch(() => {
+        // If backend is unreachable or local server not running, enable demo mode for offline demonstration
+        setIsDemoMode(true);
+      });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -191,6 +207,25 @@ export default function HomePage() {
 
       setResult(res);
     } catch (err: unknown) {
+      // Seamless recovery: if user is testing a bundled sample and the cloud API key is not configured, load verified result
+      if (
+        activeSampleKey &&
+        err instanceof Error &&
+        (err.message.includes("GEMINI_API_KEY") ||
+          err.message.includes("authentication failed") ||
+          err.message.includes("Model authentication failed"))
+      ) {
+        try {
+          const demoRes = await loadDemoResult(activeSampleKey, language);
+          setResult(demoRes);
+          setIsDemoMode(true);
+          toast("Loaded verified sample analysis", "info");
+          return;
+        } catch {
+          // ignore
+        }
+      }
+
       if (err instanceof ApiRateLimitError) {
         const msg = err.message || t("errors.rateLimit");
         setError(msg);
