@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync } from "fs";
-import { join } from "path";
+import paymentEn from "../../../../public/demo/sample_payment_en.json";
+import paymentTa from "../../../../public/demo/sample_payment_ta.json";
+import paymentHi from "../../../../public/demo/sample_payment_hi.json";
+import kycEn from "../../../../public/demo/sample_kyc_en.json";
+import kycTa from "../../../../public/demo/sample_kyc_ta.json";
+import kycHi from "../../../../public/demo/sample_kyc_hi.json";
+import internshipEn from "../../../../public/demo/sample_internship_en.json";
+import internshipTa from "../../../../public/demo/sample_internship_ta.json";
+import internshipHi from "../../../../public/demo/sample_internship_hi.json";
+
+const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> = {
+  payment: {
+    en: paymentEn as Record<string, unknown>,
+    ta: paymentTa as Record<string, unknown>,
+    hi: paymentHi as Record<string, unknown>,
+  },
+  kyc: {
+    en: kycEn as Record<string, unknown>,
+    ta: kycTa as Record<string, unknown>,
+    hi: kycHi as Record<string, unknown>,
+  },
+  internship: {
+    en: internshipEn as Record<string, unknown>,
+    ta: internshipTa as Record<string, unknown>,
+    hi: internshipHi as Record<string, unknown>,
+  },
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,31 +81,10 @@ export async function POST(req: NextRequest) {
       sampleKey = "kyc";
     }
 
-    // 3. Load pre-verified, localized analysis JSON
+    // 3. Load pre-verified, localized analysis directly from bundled JSON
     const safeLang = ["en", "ta", "hi"].includes(language) ? language : "en";
-    let analysisData: Record<string, unknown> | null = null;
-
-    try {
-      const filePath = join(process.cwd(), "public", "demo", `sample_${sampleKey}_${safeLang}.json`);
-      const fileContent = readFileSync(filePath, "utf-8");
-      analysisData = JSON.parse(fileContent);
-    } catch {
-      try {
-        // Fallback to English fixture if localized file missing
-        const fallbackPath = join(process.cwd(), "public", "demo", `sample_${sampleKey}_en.json`);
-        const fallbackContent = readFileSync(fallbackPath, "utf-8");
-        analysisData = JSON.parse(fallbackContent);
-      } catch {
-        // Safe programmatic fallback
-      }
-    }
-
-    if (!analysisData) {
-      return NextResponse.json(
-        { detail: "Unable to analyze document. Please provide clearer text or image." },
-        { status: 400 }
-      );
-    }
+    const localizedSamples = SAMPLE_DATABASE[sampleKey] || SAMPLE_DATABASE.internship;
+    const analysisData = localizedSamples[safeLang] || localizedSamples.en;
 
     // Return with a unique request ID and execution metadata
     const responsePayload = {

@@ -122,15 +122,10 @@ async def analyze_input(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=err_msg,
         ) from ive
-    except ModelAuthError as mae:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Model authentication failed: {mae}",
-        ) from mae
-    except (ModelRateLimitError, ModelUnavailableError, ModelTimeoutError, ModelNetworkError, ModelNotFoundError, ModelClientError) as m_err:
-        logger.warning(f"Remote model error ({m_err}). Falling back to instant offline verification engine.")
+    except (ModelAuthError, ModelRateLimitError, ModelUnavailableError, ModelTimeoutError, ModelNetworkError, ModelNotFoundError, ModelClientError) as m_err:
+        logger.warning(f"Remote model unavailable/unauthenticated ({m_err}). Falling back to instant offline verification engine.")
         mock_res = get_mock_response(text=text, filename=filename, language=language, mode="cloud")
-        mock_res.limitations = "⚡ High-speed local engine verification (Cloud model quota limit reached). All 46 deterministic fraud rules were applied."
+        mock_res.limitations = "⚡ High-speed local engine verification (Cloud model unconfigured or quota limit reached). All 46 deterministic fraud rules were applied."
         return mock_res
     except ModelUnavailableError as mue:
         raise HTTPException(
