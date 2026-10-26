@@ -8,6 +8,9 @@ services:
     container_name: scamlens-backend
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
+      - .env
     environment:
       - MODE=${MODE:-cloud}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}

@@ -44,6 +44,16 @@ class ModelUnavailableError(ModelClientError):
     pass
 
 
+class ModelNotFoundError(ModelClientError):
+    """Raised when the configured model name is not found or not allowed for the key."""
+    pass
+
+
+class ModelNetworkError(ModelUnavailableError):
+    """Raised when network connectivity fails (DNS, connection dropped, SSL)."""
+    pass
+
+
 # ==============================================================================
 # Abstract Model Client Base
 # ==============================================================================
@@ -91,7 +101,10 @@ class CloudGeminiClient(ModelClient):
             self.model_name = raw_model
 
         if not self.api_key:
-            raise ModelAuthError("GEMINI_API_KEY is not configured or is empty.")
+            raise ModelAuthError(
+                "GEMINI_API_KEY is not configured or is empty. "
+                "Please configure GEMINI_API_KEY in backend/.env, or switch to 'Demo Mode' or 'Local Mode' in settings."
+            )
 
     async def generate(
         self,
@@ -185,15 +198,54 @@ class CloudGeminiClient(ModelClient):
                 raise ModelTimeoutError("Cloud Gemini request timed out after 30 seconds.") from te
             except Exception as e:
                 err_msg = str(e).lower()
-                if "429" in err_msg or "resource_exhausted" in err_msg:
-                    raise ModelRateLimitError(f"Cloud Gemini rate limit exceeded: {e}") from e
-                if "401" in err_msg or "403" in err_msg or "api_key" in err_msg:
-                    raise ModelAuthError(f"Cloud Gemini authentication error: {e}") from e
-                if attempt == 0 and ("404" in err_msg or "not found" in err_msg or "no longer available" in err_msg or "503" in err_msg or "500" in err_msg):
+                # 1. Quota or Rate Limit (429)
+                if "429" in err_msg or "resource_exhausted" in err_msg or "quota" in err_msg:
+                    raise ModelRateLimitError(
+                        "Remote Gemini API rate limit or quota exceeded (HTTP 429). "
+                        "Please switch to 'Private, local' mode in settings to run models offline without limits, "
+                        "switch to Demo Mode, or try again later."
+                    ) from e
+
+                # 2. Key Rejected (401 / 403)
+                if "401" in err_msg or "403" in err_msg or "api_key" in err_msg or "permission_denied" in err_msg:
+                    raise ModelAuthError(
+                        "Gemini API key was rejected by Google AI Studio (HTTP 401/403). "
+                        "The key is invalid, revoked, or lacks permission. "
+                        "Please verify your key at https://aistudio.google.com or switch to Demo Mode."
+                    ) from e
+
+                # 3. Model name not found or not allowed (404)
+                if "404" in err_msg or "not found" in err_msg or "no longer available" in err_msg:
+                    if attempt == 0 and curr_model != "gemini-3-flash-preview":
+                        curr_model = "gemini-3-flash-preview"
+                        await asyncio.sleep(0.5)
+                        continue
+                    raise ModelNotFoundError(
+                        f"Configured model '{curr_model}' was not found or is not allowed for your API key. "
+                        "Check available models using 'python scripts/check_gemini.py --list-models' "
+                        "or update GEMMA_MODEL in backend/.env, or switch to Demo Mode."
+                    ) from e
+
+                # 4. Network / Connection Error
+                if any(x in err_msg for x in ["connect", "network", "getaddrinfo", "dns", "connection reset", "broken pipe", "ssl"]):
+                    if attempt == 0:
+                        await asyncio.sleep(1.0)
+                        continue
+                    raise ModelNetworkError(
+                        "Unable to connect to Google Gemini API (network/connection error). "
+                        "Please check your internet connection or switch to Demo Mode or Local Mode."
+                    ) from e
+
+                # 5. Service 500 / 503 internal error (retry with gemini-3-flash-preview if first attempt)
+                if attempt == 0 and ("503" in err_msg or "500" in err_msg or "connection" in err_msg or "internal" in err_msg):
                     curr_model = "gemini-3-flash-preview"
                     await asyncio.sleep(0.5)
                     continue
-                raise ModelUnavailableError(f"Cloud Gemini inference failed: {e}") from e
+
+                raise ModelUnavailableError(
+                    f"Google Gemini service is temporarily unavailable ({e}). "
+                    "Please try again in a few moments or switch to Demo Mode."
+                ) from e
 
         raise ModelUnavailableError("Cloud Gemini inference failed after retry.")
 
@@ -523,5 +575,6 @@ def is_cloud_key_configured() -> bool:
     """
     Verifies if GEMINI_API_KEY is configured with a non-placeholder value.
     """
-    key = settings.GEMINI_API_KEY.strip()
-    return bool(key and key != "your_gemini_api_key_here" and len(key) > 8)
+    from app.config import clean_key
+    key = clean_key(settings.GEMINI_API_KEY)
+    return bool(key and len(key) > 8)

@@ -1,7 +1,25 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router as api_router
 from app.config import settings
+
+logger = logging.getLogger("scamlens")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Masked startup log for Gemini key (never logs the value)
+    key_len = len(settings.GEMINI_API_KEY) if settings.GEMINI_API_KEY else 0
+    if key_len > 0:
+        logger.info(f"Gemini key: present (length {key_len})")
+        print(f"Gemini key: present (length {key_len})")
+    else:
+        logger.warning("Gemini key: MISSING")
+        print("Gemini key: MISSING")
+    yield
+
 
 app = FastAPI(
     title="ScamLens API",
@@ -11,6 +29,7 @@ app = FastAPI(
         "name": "Apache-2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
+    lifespan=lifespan,
 )
 
 # Configure CORS from environment

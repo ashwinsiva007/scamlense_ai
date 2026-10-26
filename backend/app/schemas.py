@@ -68,6 +68,10 @@ class HealthResponse(BaseModel):
     status: str = Field(default="ok", description="Service status")
     mode: str = Field(..., description="Current configured MODE")
     model: str = Field(..., description="Configured model identifier")
+    model_name: Optional[str] = Field(None, description="Configured model name identifier")
+    key_configured: bool = Field(default=False, description="Whether Gemini API key is configured (true or false only)")
+    key_length: int = Field(default=0, description="Length of configured Gemini API key (never exposes key)")
+    sdk_version: str = Field(default="unknown", description="Version of google-genai SDK installed")
     ollama_reachable: bool = Field(default=False, description="Whether local Ollama endpoint responded")
     cloud_key_set: bool = Field(default=False, description="Whether cloud API key is configured")
 

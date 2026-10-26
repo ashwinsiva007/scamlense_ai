@@ -9,6 +9,8 @@ from app.services.image_utils import ImageValidationError
 from app.services.model_client import (
     ModelAuthError,
     ModelClientError,
+    ModelNotFoundError,
+    ModelNetworkError,
     ModelRateLimitError,
     ModelTimeoutError,
     ModelUnavailableError,
@@ -24,15 +26,29 @@ router = APIRouter(prefix="/api", tags=["ScamLens API"])
 async def get_health() -> HealthResponse:
     """
     Returns system status, operating mode, model identifier,
-    Ollama connectivity status, and whether the cloud API key is configured.
+    Ollama connectivity status, key configuration status, key length, and SDK version.
+    Never returns the API key value.
     """
     ollama_ok = await check_ollama_health(settings.OLLAMA_BASE_URL)
     cloud_key_ok = is_cloud_key_configured()
+    key_len = len(settings.GEMINI_API_KEY) if cloud_key_ok else 0
+
+    try:
+        import google.genai
+        sdk_ver = getattr(google.genai, "__version__", "unknown")
+    except Exception:
+        sdk_ver = "not_installed"
+
+    active_model = settings.GEMMA_MODEL if settings.MODE == "cloud" else settings.OLLAMA_MODEL
 
     return HealthResponse(
         status="ok",
         mode=settings.MODE,
-        model=settings.GEMMA_MODEL if settings.MODE == "cloud" else settings.OLLAMA_MODEL,
+        model=active_model,
+        model_name=active_model,
+        key_configured=cloud_key_ok,
+        key_length=key_len,
+        sdk_version=sdk_ver,
         ollama_reachable=ollama_ok,
         cloud_key_set=cloud_key_ok,
     )
@@ -107,14 +123,21 @@ async def analyze_input(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Model authentication failed: {mae}",
         ) from mae
+    except ModelNotFoundError as mnfe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model not found: {mnfe}",
+        ) from mnfe
     except ModelRateLimitError as mrle:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=(
-                "Remote model API quota exceeded. Please switch to 'Private, local' "
-                f"mode in settings to run models offline without rate limits, or try again later. ({mrle})"
-            ),
+            detail=f"Remote model quota exceeded: {mrle}",
         ) from mrle
+    except ModelNetworkError as mne:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Model network error: {mne}",
+        ) from mne
     except ModelTimeoutError as mte:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
