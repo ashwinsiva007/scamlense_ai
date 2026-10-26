@@ -262,7 +262,7 @@ def evaluate_rules(
                 sig.evidence = evidence_key
                 verified_signals.append(sig)
             else:
-                logger.debug(f"Dropping signal {sig.id}: evidence '{sig.evidence}' not found in extracted text")
+                logger.debug(f"Dropping signal {sig.id}: evidence not found in extracted text")
 
     # 6. Compute Category Totals (to check for money_demands / credentials presence)
     preliminary_cat_scores: Dict[str, float] = {}

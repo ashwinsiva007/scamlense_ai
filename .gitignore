@@ -42,3 +42,5 @@ temp/
 scratch/
 .cache/
 eval/.cache/
+backend/eval/.cache/
+*.tsbuildinfo

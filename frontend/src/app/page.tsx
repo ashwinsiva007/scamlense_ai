@@ -192,8 +192,9 @@ export default function HomePage() {
       setResult(res);
     } catch (err: unknown) {
       if (err instanceof ApiRateLimitError) {
-        setError(t("errors.rateLimit"));
-        toast(t("errors.rateLimit"), "error");
+        const msg = err.message || t("errors.rateLimit");
+        setError(msg);
+        toast(msg, "error");
       } else if (err instanceof ApiNetworkError) {
         setError(t("errors.networkError"));
         toast(t("errors.networkError"), "error");

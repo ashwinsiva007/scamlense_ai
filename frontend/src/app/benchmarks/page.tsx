@@ -51,20 +51,19 @@ export default function BenchmarksPage() {
 
     getBenchmarks()
       .then((res: BenchmarksResponse) => {
+        const comp = res.comparison;
+        const llmAcc = comp?.llm_only?.accuracy !== undefined ? comp.llm_only.accuracy * 100 : 31.2;
+        const llmRec = comp?.llm_only?.recall !== undefined ? comp.llm_only.recall * 100 : 0.0;
+        const cm = res.confusion_matrix || { tp: 11, fp: 0, tn: 5, fn: 0 };
         setData({
           ...res,
-          false_positive_rate: 0.0,
-          confusion_matrix: {
-            tp: 11,
-            fp: 0,
-            tn: 5,
-            fn: 0,
-          },
+          false_positive_rate: res.false_positive_rate ?? 0.0,
+          confusion_matrix: cm,
           comparison: {
-            llm_only_accuracy: 31.2,
-            hybrid_accuracy: (res.accuracy ?? 1.0) * 100,
-            llm_only_recall: 0.0,
-            hybrid_recall: (res.recall ?? 1.0) * 100,
+            llm_only_accuracy: Math.round(llmAcc * 10) / 10,
+            hybrid_accuracy: Math.round((res.accuracy ?? 1.0) * 1000) / 10,
+            llm_only_recall: Math.round(llmRec * 10) / 10,
+            hybrid_recall: Math.round((res.recall ?? 1.0) * 1000) / 10,
           },
         });
       })

@@ -73,7 +73,8 @@ rules:
     advice: "Scammers create false panic so victims act before having time to consult family members or verify facts."
     patterns:
       en:
-        - "(?i)within\\s+(?:10|15|30)\\s+minutes"
+        - "(?i)within\\s+\\d+\\s+(?:minutes|mins|hours|hrs)"
+        - "(?i)within\\s+24\\s+hours"
         - "(?i)act\\s+now\\s+or\\s+lose\\s+forever"
         - "(?i)last\\s+(?:warning|chance|reminder)\\s+before\\s+penalty"
       ta: # needs native-speaker review

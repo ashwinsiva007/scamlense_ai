@@ -65,6 +65,8 @@ def is_ip_safe(ip_str: str) -> bool:
             return False
         if ip.is_reserved:
             return False
+        if ip.is_unspecified:
+            return False
         if str(ip) in _METADATA_IPS:
             return False
         # Specific check for IPv4 mapped IPv6 addresses
@@ -185,6 +187,11 @@ async def unshorten_url(url: str) -> Tuple[str, List[ToolResult], List[Signal]]:
     Follows HTTP redirects up to 5 hops with SSRF checks on each hop.
     Limits response body read to 64KB.
     """
+    cache_key = f"unshorten_{url}"
+    cached = _get_from_cache(cache_key)
+    if cached is not None:
+        return cached
+
     results: List[ToolResult] = []
     signals: List[Signal] = []
     current_url = url
@@ -271,7 +278,9 @@ async def unshorten_url(url: str) -> Tuple[str, List[ToolResult], List[Signal]]:
             )
         )
 
-    return current_url, results, signals
+    res = (current_url, results, signals)
+    _put_to_cache(cache_key, res)
+    return res
 
 
 async def check_lookalike_domain(domain: str) -> Tuple[List[ToolResult], List[Signal]]:

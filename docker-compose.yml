@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODE=${MODE:-mock}
+      - MODE=${MODE:-cloud}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMMA_MODEL=${GEMMA_MODEL:-google/gemma-4-9b-it}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
@@ -21,7 +21,7 @@ services:
       - RATE_LIMIT_PER_MIN=${RATE_LIMIT_PER_MIN:-20}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -37,10 +37,11 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
-  # Optional local LLM runner with Gemma 4, active only when --profile local is specified
+  # Local Mode Services: Activated with --profile local
   ollama:
     image: ollama/ollama:latest
     container_name: scamlens-ollama
@@ -51,6 +52,28 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  ollama-setup:
+    image: curlimages/curl:latest
+    container_name: scamlens-ollama-setup
+    profiles:
+      - local
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/pull_local_model.sh"]
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:latest}
+    restart: "no"
 
 volumes:
   ollama_data:

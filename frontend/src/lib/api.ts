@@ -74,9 +74,21 @@ export interface BenchmarksResponse {
   precision: number;
   recall: number;
   f1_score: number;
+  false_positive_rate?: number;
   average_latency_ms: number;
   rule_packs_loaded: number;
   last_updated: string;
+  confusion_matrix?: {
+    tp: number;
+    fp: number;
+    tn: number;
+    fn: number;
+  };
+  comparison?: {
+    llm_only: Record<string, any>;
+    scamlens_hybrid: Record<string, any>;
+  };
+  per_language?: Record<string, any>;
 }
 
 export function getApiBaseUrl(): string {
@@ -140,7 +152,16 @@ export async function analyzeMessage(params: {
 
     if (!response.ok) {
       if (response.status === 429) {
-        throw new ApiRateLimitError("Rate limit reached. Please wait a minute before analyzing another document.");
+        let rateLimitDetail = "Rate limit reached. Please wait a minute before analyzing another document.";
+        try {
+          const errorJson = (await response.json()) as { detail?: string };
+          if (errorJson.detail) {
+            rateLimitDetail = errorJson.detail;
+          }
+        } catch {
+          // ignore JSON parse error
+        }
+        throw new ApiRateLimitError(rateLimitDetail);
       }
       let errorDetail = "Failed to analyze input";
       try {

@@ -10,9 +10,10 @@ rules:
     advice: "Legitimate employers never demand upfront fees, training charges, or equipment deposits from candidates."
     patterns:
       en:
-        - "(?i)(?:registration|processing|onboarding|training|interview)\\s+fee"
-        - "(?i)(?:refundable\\s+)?(?:security\\s+deposit|caution\\s+deposit)"
-        - "(?i)pay\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s*(?:for|to\\s+confirm)\\s+(?:seat|slot|offer|job|internship)"
+        - "(?i)(?:registration|processing|onboarding|training|interview|security)\\s+fee"
+        - "(?i)(?:refundable\\s+)?(?:security\\s+(?:deposit|fee)|caution\\s+deposit)"
+        - "(?i)(?:deposit|pay)\\s+(?:a\\s+)?(?:refundable\\s+)?(?:security|registration)\\s+(?:fee|deposit)"
+        - "(?i)pay\\s+(?:rs\\.?|inr|₹)?\\s*\\d+\\s*(?:for|to\\s+confirm|to\\s+secure)\\s+(?:seat|slot|offer|job|internship)"
       ta: # needs native-speaker review
         - "(?i)பதிவுக்\\s*கட்டணம்"
         - "(?i)பாதுகாப்பு\\s*வைப்புத்தொகை"

@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -79,6 +79,10 @@ class BenchmarksResponse(BaseModel):
     precision: float
     recall: float
     f1_score: float
+    false_positive_rate: float = 0.0
     average_latency_ms: int
     rule_packs_loaded: int
     last_updated: str
+    confusion_matrix: Optional[Dict[str, int]] = None
+    comparison: Optional[Dict[str, Any]] = None
+    per_language: Optional[Dict[str, Any]] = None
