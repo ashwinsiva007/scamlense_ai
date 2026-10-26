@@ -81,12 +81,34 @@ export interface BenchmarksResponse {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export class ApiNetworkError extends Error {
+  isNetworkError = true;
+  constructor(message: string) {
+    super(message);
+    this.name = "ApiNetworkError";
+  }
+}
+
+export class ApiRateLimitError extends Error {
+  isRateLimit = true;
+  constructor(message: string) {
+    super(message);
+    this.name = "ApiRateLimitError";
+  }
+}
+
 export async function analyzeMessage(params: {
   image?: File | null;
   text?: string;
   language?: Language;
   mode?: Mode;
 }): Promise<AnalyzeResponse> {
+  const isForcedDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  if (isForcedDemo) {
+    // If demo mode is forced via env, load sample based on text hints or default to internship
+    return loadDemoResult("internship", params.language || "en");
+  }
+
   const formData = new FormData();
   if (params.image) {
     formData.append("image", params.image);
@@ -101,23 +123,53 @@ export async function analyzeMessage(params: {
     formData.append("mode", params.mode);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/analyze`, {
-    method: "POST",
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+      method: "POST",
+      body: formData,
+    });
 
-  if (!response.ok) {
-    let errorDetail = "Failed to analyze input";
-    try {
-      const errorJson = await response.json();
-      errorDetail = errorJson.detail || errorDetail;
-    } catch {
-      // ignore
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new ApiRateLimitError("Rate limit reached. Please wait a minute before analyzing another document.");
+      }
+      let errorDetail = "Failed to analyze input";
+      try {
+        const errorJson = (await response.json()) as { detail?: string };
+        errorDetail = errorJson.detail || errorDetail;
+      } catch {
+        // ignore JSON parse error
+      }
+      throw new Error(errorDetail);
     }
-    throw new Error(errorDetail);
-  }
 
-  return response.json();
+    return (await response.json()) as AnalyzeResponse;
+  } catch (err: unknown) {
+    if (err instanceof ApiRateLimitError) {
+      throw err;
+    }
+    if (err instanceof TypeError && (err.message.includes("fetch") || err.message.includes("network") || err.message.includes("Failed to fetch"))) {
+      throw new ApiNetworkError("Cannot connect to ScamLens API server. You can switch to Demo Mode to test offline samples.");
+    }
+    throw err instanceof Error ? err : new Error(String(err));
+  }
+}
+
+export async function loadDemoResult(
+  sampleKey: "internship" | "payment" | "kyc",
+  language: Language
+): Promise<AnalyzeResponse> {
+  const filename = `/demo/sample_${sampleKey}_${language}.json`;
+  const response = await fetch(filename);
+  if (!response.ok) {
+    // fallback to English
+    const fallbackResponse = await fetch(`/demo/sample_${sampleKey}_en.json`);
+    if (!fallbackResponse.ok) {
+      throw new Error(`Failed to load demo fixture: ${filename}`);
+    }
+    return (await fallbackResponse.json()) as AnalyzeResponse;
+  }
+  return (await response.json()) as AnalyzeResponse;
 }
 
 export async function getHealth(): Promise<HealthResponse> {
@@ -127,7 +179,7 @@ export async function getHealth(): Promise<HealthResponse> {
   if (!response.ok) {
     throw new Error("Health check failed");
   }
-  return response.json();
+  return (await response.json()) as HealthResponse;
 }
 
 export async function getBenchmarks(): Promise<BenchmarksResponse> {
@@ -137,5 +189,5 @@ export async function getBenchmarks(): Promise<BenchmarksResponse> {
   if (!response.ok) {
     throw new Error("Failed to fetch benchmarks");
   }
-  return response.json();
+  return (await response.json()) as BenchmarksResponse;
 }

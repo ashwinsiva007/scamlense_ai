@@ -1,0 +1,80 @@
+{
+  "request_id": "demo-payment-en-002",
+  "band": "suspicious",
+  "score": 55,
+  "confidence": "high",
+  "scam_type": "fake_payment_screenshot",
+  "language": "en",
+  "extracted": {
+    "document_type": "payment_screenshot",
+    "sender": "Rahul Verma",
+    "message_text": "Paid Successfully ₹ 12,500.00 to Dharshika S dharshika@okaxis. UPI Ref No: 429910482910. Payment Note: Advance laptop fee sent. Dispatch courier immediately within 1 hour or legal police complaint will be filed.",
+    "urls": [],
+    "phone_numbers": [],
+    "upi_ids": [
+      "dharshika@okaxis"
+    ],
+    "amounts": [
+      "₹ 12,500.00"
+    ],
+    "claimed_brand": "Google Pay",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "Mismatched font weight on amount field",
+      "Urgent coercive payment note",
+      "Unverified transaction status"
+    ]
+  },
+  "signals": [
+    {
+      "id": "PAYMENT_COERCIVE_NOTE",
+      "label": "Coercive Police Threat in Payment Note",
+      "category": "urgency_threat",
+      "weight": 35.0,
+      "evidence": "Dispatch courier immediately within 1 hour or legal police complaint will be filed",
+      "source": "rule"
+    },
+    {
+      "id": "PAYMENT_SCREENSHOT_INCONSISTENCY",
+      "label": "Visual Font Irregularity in Amount",
+      "category": "payment_screenshot",
+      "weight": 20.0,
+      "evidence": "Mismatched font kerning and weight in ₹ 12,500.00 field",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "upi_verifier",
+      "target": "dharshika@okaxis",
+      "status": "ok",
+      "detail": "Valid VPA format."
+    }
+  ],
+  "explanation": "This payment screenshot exhibits high risk of digital tampering. A screenshot alone can easily be forged using fake payment receipt generators or editing apps. The threat to file a police report within 1 hour is a classic pressure tactic.",
+  "next_steps": [
+    "A screenshot cannot prove a payment. Confirm in your bank app or official bank SMS.",
+    "Do NOT dispatch any goods or courier parcels until money is reflected in your bank account.",
+    "Do not call back or engage with threats of police action.",
+    "If pressured, block the sender and file an inquiry on cybercrime.gov.in."
+  ],
+  "family_alert": {
+    "title": "⚠️ Caution: Payment Screenshot Deception Warning",
+    "body": "Never dispatch goods or transfer refund money simply because someone shows you a payment screenshot. Always log into your own bank app to verify actual credit.",
+    "tips": [
+      "A screenshot is not proof of payment.",
+      "Check your bank balance directly in your bank application.",
+      "Ignore threats of immediate police action."
+    ]
+  },
+  "limitations": "This assessment is based exclusively on the provided text and imagery. Absence of detected red flags does not guarantee authenticity.",
+  "mode": "mock",
+  "timings_ms": {
+    "total": 290,
+    "extraction": 125,
+    "verifiers": 60,
+    "rules": 25,
+    "explanation": 80
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "request_id": "demo-payment-ta-002",
+  "band": "suspicious",
+  "score": 55,
+  "confidence": "high",
+  "scam_type": "fake_payment_screenshot",
+  "language": "ta",
+  "extracted": {
+    "document_type": "payment_screenshot",
+    "sender": "Rahul Verma",
+    "message_text": "Paid Successfully ₹ 12,500.00 to Dharshika S dharshika@okaxis. UPI Ref No: 429910482910. Payment Note: Advance laptop fee sent. Dispatch courier immediately within 1 hour or legal police complaint will be filed.",
+    "urls": [],
+    "phone_numbers": [],
+    "upi_ids": [
+      "dharshika@okaxis"
+    ],
+    "amounts": [
+      "₹ 12,500.00"
+    ],
+    "claimed_brand": "Google Pay",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "தொகை எழுத்துருவில் பொருந்தாத மாற்றம்",
+      "காவல்துறை அச்சுறுத்தல் கொண்ட குறிப்பு",
+      "சரிபார்க்கப்படாத பரிவர்த்தனை"
+    ]
+  },
+  "signals": [
+    {
+      "id": "PAYMENT_COERCIVE_NOTE",
+      "label": "காவல்துறை புகார் குறித்த அச்சுறுத்தல்",
+      "category": "urgency_threat",
+      "weight": 35.0,
+      "evidence": "Dispatch courier immediately within 1 hour or legal police complaint will be filed",
+      "source": "rule"
+    },
+    {
+      "id": "PAYMENT_SCREENSHOT_INCONSISTENCY",
+      "label": "தொகை எழுத்துருவில் காட்சி முரண்பாடு",
+      "category": "payment_screenshot",
+      "weight": 20.0,
+      "evidence": "Mismatched font kerning and weight in ₹ 12,500.00 field",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "upi_verifier",
+      "target": "dharshika@okaxis",
+      "status": "ok",
+      "detail": "சரியான VPA வடிவம்."
+    }
+  ],
+  "explanation": "இந்த கட்டண ஸ்கிரீன்ஷாட் திருத்தப்பட்டிருக்க அதிக வாய்ப்புள்ளது. ஸ்கிரீன்ஷாட் மட்டும் பணம் வந்ததற்கான ஆதாரமாகாது. 1 மணி நேரத்திற்குள் கூரியர் அனுப்பாவிட்டால் போலீசில் புகார் தருவேன் என மிரட்டுவது வழக்கமான மோசடி உத்தி.",
+  "next_steps": [
+    "ஒரு ஸ்கிரீன்ஷாட் பணப் பரிவர்த்தனையை நிரூபிக்காது. உங்கள் வங்கி செயலி அல்லது அதிகாரப்பூர்வ எஸ்எம்எஸ் மூலம் உறுதிப்படுத்தவும்.",
+    "உங்கள் வங்கிக் கணக்கில் பணம் வரவு வைக்கப்படும் வரை பொருட்களை அனுப்ப வேண்டாம்.",
+    "மிரட்டல்களுக்கு பயந்து எந்த நடவடிக்கையும் எடுக்க வேண்டாம்.",
+    "தேவைப்பட்டால் 1930 எண்ணில் புகார் அளிக்கவும்."
+  ],
+  "family_alert": {
+    "title": "⚠️ எச்சரிக்கை: போலி கட்டண ஸ்கிரீன்ஷாட் மோசடி",
+    "body": "யாராவது பணம் அனுப்பிவிட்டதாக ஸ்கிரீன்ஷாட் காட்டினால் உடனே நம்பி பொருட்களை அனுப்பாதீர்கள் அல்லது பணம் திருப்பி அனுப்பாதீர்கள். உங்கள் வங்கி செயலியைத் திறந்து பாருங்கள்.",
+    "tips": [
+      "ஸ்கிரீன்ஷாட் பண வரவிற்கான ஆதாரம் அல்ல.",
+      "உங்கள் சொந்த வங்கி செயலியில் கணக்கு இருப்பை சரிபார்க்கவும்.",
+      "போலீஸ் புகார் மிரட்டல்களை புறக்கணிக்கவும்."
+    ]
+  },
+  "limitations": "இந்த மதிப்பீடு வழங்கப்பட்ட உரை மற்றும் படத்தை மட்டுமே அடிப்படையாகக் கொண்டது.",
+  "mode": "mock",
+  "timings_ms": {
+    "total": 295,
+    "extraction": 128,
+    "verifiers": 60,
+    "rules": 26,
+    "explanation": 81
+  }
+}

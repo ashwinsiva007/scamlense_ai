@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Noto_Sans_Tamil, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ToastProvider } from "@/components/ui/Toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
@@ -41,11 +42,13 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${notoSansTamil.variable} ${notoSansDevanagari.variable}`}
     >
-      <body className="font-sans antialiased bg-background text-text min-h-screen flex flex-col">
+      <body className="font-sans antialiased bg-background text-text min-h-screen flex flex-col selection:bg-primary-light selection:text-primary">
         <LanguageProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <ToastProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>

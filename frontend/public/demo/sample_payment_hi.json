@@ -1,0 +1,79 @@
+{
+  "request_id": "demo-payment-hi-002",
+  "band": "suspicious",
+  "score": 55,
+  "confidence": "high",
+  "scam_type": "fake_payment_screenshot",
+  "language": "hi",
+  "extracted": {
+    "document_type": "payment_screenshot",
+    "sender": "Rahul Verma",
+    "message_text": "Paid Successfully ₹ 12,500.00 to Dharshika S dharshika@okaxis. UPI Ref No: 429910482910. Payment Note: Advance laptop fee sent. Dispatch courier immediately within 1 hour or legal police complaint will be filed.",
+    "urls": [],
+    "phone_numbers": [],
+    "upi_ids": [
+      "dharshika@okaxis"
+    ],
+    "amounts": [
+      "₹ 12,500.00"
+    ],
+    "claimed_brand": "Google Pay",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "राशि फ़ॉन्ट में भिन्नता",
+      "पुलिस शिकायत की धमकी वाली टिप्पणी"
+    ]
+  },
+  "signals": [
+    {
+      "id": "PAYMENT_COERCIVE_NOTE",
+      "label": "भुगतान नोट में पुलिस शिकायत की धमकी",
+      "category": "urgency_threat",
+      "weight": 35.0,
+      "evidence": "Dispatch courier immediately within 1 hour or legal police complaint will be filed",
+      "source": "rule"
+    },
+    {
+      "id": "PAYMENT_SCREENSHOT_INCONSISTENCY",
+      "label": "राशि फ़ॉन्ट में दृश्य विसंगति",
+      "category": "payment_screenshot",
+      "weight": 20.0,
+      "evidence": "Mismatched font kerning and weight in ₹ 12,500.00 field",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "upi_verifier",
+      "target": "dharshika@okaxis",
+      "status": "ok",
+      "detail": "मान्य यूपीआई प्रारूप।"
+    }
+  ],
+  "explanation": "यह भुगतान स्क्रीनशॉट छेड़छाड़ किया हुआ प्रतीत होता है। केवल एक स्क्रीनशॉट कभी भी भुगतान का पुख्ता प्रमाण नहीं हो सकता। 1 घंटे में कूरियर न भेजने पर पुलिस में शिकायत करने की धमकी दबाव बनाने का पुराना हथकंडा है।",
+  "next_steps": [
+    "एक स्क्रीनशॉट भुगतान साबित नहीं कर सकता। अपने बैंक ऐप या आधिकारिक बैंक एसएमएस में पुष्टि करें।",
+    "जब तक बैंक खाते में राशि जमा न दिखे, कोई सामान न भेजें।",
+    "धमकी भरे संदेशों पर प्रतिक्रिया न दें।",
+    "साइबर हेल्पलाइन 1930 पर सहायता प्राप्त करें।"
+  ],
+  "family_alert": {
+    "title": "⚠️ सावधान: फर्जी भुगतान स्क्रीनशॉट की चेतावनी",
+    "body": "केवल स्क्रीनशॉट देखकर कभी भी सामान न भेजें और न ही कोई रिफंड वापस करें। हमेशा अपने स्वयं के बैंक ऐप में जाकर खाते की शेष राशि जांचें।",
+    "tips": [
+      "स्क्रीनशॉट भुगतान का सबूत नहीं होता।",
+      "अपने बैंक ऐप में जाकर खाते की जांच करें।",
+      "पुलिस शिकायत की झूठी धमकियों से न डरें।"
+    ]
+  },
+  "limitations": "यह विश्लेषण केवल इनपुट टेक्स्ट और तस्वीर पर आधारित है।",
+  "mode": "mock",
+  "timings_ms": {
+    "total": 292,
+    "extraction": 126,
+    "verifiers": 59,
+    "rules": 27,
+    "explanation": 80
+  }
+}

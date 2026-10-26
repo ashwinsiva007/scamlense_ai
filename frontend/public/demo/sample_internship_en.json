@@ -1,0 +1,99 @@
+{
+  "request_id": "demo-internship-en-001",
+  "band": "likely_scam",
+  "score": 85,
+  "confidence": "high",
+  "scam_type": "fake_internship_fee",
+  "language": "en",
+  "extracted": {
+    "document_type": "offer_letter",
+    "sender": "careers-google@tech-hiring-portal.org",
+    "message_text": "Congratulations! You have been selected for a Virtual Internship. Please deposit a refundable security fee of Rs. 1500 to UPI ID techcareers@okaxis within 24 hours to secure your seat.",
+    "urls": [
+      "http://tech-hiring-portal.org/offer-accept"
+    ],
+    "phone_numbers": [
+      "+919876543210"
+    ],
+    "upi_ids": [
+      "techcareers@okaxis"
+    ],
+    "amounts": [
+      "Rs. 1500",
+      "Rs. 25000"
+    ],
+    "claimed_brand": "Google",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "Official Google styling mimicked",
+      "Unregistered domain header",
+      "Staged HR stamp seal"
+    ]
+  },
+  "signals": [
+    {
+      "id": "MONEY_ADVANCE_FEE",
+      "label": "Advance Security Fee Demanded",
+      "category": "money_demands",
+      "weight": 40.0,
+      "evidence": "refundable security fee of Rs. 1500",
+      "source": "rule"
+    },
+    {
+      "id": "URGENCY_DEADLINE_24H",
+      "label": "Artificial Urgency Deadline",
+      "category": "urgency_threat",
+      "weight": 25.0,
+      "evidence": "within 24 hours of receiving this letter",
+      "source": "rule"
+    },
+    {
+      "id": "SENDER_DOMAIN_MISMATCH",
+      "label": "Unofficial Sender Domain",
+      "category": "impersonation",
+      "weight": 20.0,
+      "evidence": "careers-google@tech-hiring-portal.org claiming to represent Google",
+      "source": "tool"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "domain_verifier",
+      "target": "tech-hiring-portal.org",
+      "status": "warn",
+      "detail": "Domain registered 4 days ago. Not associated with Google LLC."
+    },
+    {
+      "tool": "upi_verifier",
+      "target": "techcareers@okaxis",
+      "status": "warn",
+      "detail": "Individual VPA format used instead of registered corporate merchant."
+    }
+  ],
+  "explanation": "This offer letter shows strong signs of an internship recruitment scam. Legitimate employers never require applicants to pay a 'refundable security fee' or deposit money via UPI to confirm an offer. Furthermore, the email sender domain is not affiliated with Google.",
+  "next_steps": [
+    "Do NOT transfer any money or pay the requested Rs. 1500 via UPI.",
+    "Do not share your Aadhaar, bank details, or personal ID documents.",
+    "Verify genuine vacancies directly on the official careers page at careers.google.com.",
+    "Report this fraudulent incident to the National Cybercrime Portal at cybercrime.gov.in or dial 1930."
+  ],
+  "family_alert": {
+    "title": "⚠️ Caution: Fake Internship / Job Deposit Alert",
+    "body": "If anyone sends you a job or internship offer asking for an upfront registration or equipment fee via UPI, DO NOT PAY. Genuine companies never charge candidates money to start work.",
+    "tips": [
+      "Never pay money to get a job or internship.",
+      "Check the company email address carefully (@company.com).",
+      "Discuss with a family member before transferring funds."
+    ]
+  },
+  "limitations": "This assessment is based exclusively on the provided text and imagery. Absence of detected red flags does not guarantee authenticity.",
+  "mode": "mock",
+  "timings_ms": {
+    "total": 312,
+    "extraction": 140,
+    "verifiers": 82,
+    "rules": 25,
+    "explanation": 65
+  }
+}

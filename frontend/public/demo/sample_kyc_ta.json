@@ -1,0 +1,94 @@
+{
+  "request_id": "demo-kyc-ta-003",
+  "band": "likely_scam",
+  "score": 92,
+  "confidence": "high",
+  "scam_type": "bank_kyc_phishing",
+  "language": "ta",
+  "extracted": {
+    "document_type": "sms",
+    "sender": "VM-SBIINB",
+    "message_text": "SBI ALERT: Dear SBI Customer, Your State Bank NetBanking and YONO account has been temporarily DEACTIVATED due to pending KYC / PAN verification. To avoid permanent account freeze and blocking of debit card within 24 hours, please update your documents immediately at: http://sbi-kyc-update.top/pan-link. For urgent support, dial officer at: +919876543210 — SBI Automated Security Cell",
+    "urls": [
+      "http://sbi-kyc-update.top/pan-link"
+    ],
+    "phone_numbers": [
+      "+919876543210"
+    ],
+    "upi_ids": [],
+    "amounts": [],
+    "claimed_brand": "State Bank of India",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "வங்கி SMS போன்ற அமைப்பு",
+      "ஆபத்தான .top ஃபிஷிங் இணைப்பு",
+      "24 மணி நேர கணக்கு முடக்க மிரட்டல்"
+    ]
+  },
+  "signals": [
+    {
+      "id": "LINKS_TYPOSQUATTING",
+      "label": "போலி வங்கி வலைத்தள இணைப்பு",
+      "category": "links",
+      "weight": 40.0,
+      "evidence": "http://sbi-kyc-update.top/pan-link",
+      "source": "tool"
+    },
+    {
+      "id": "CREDENTIALS_KYC_PAN",
+      "label": "வங்கி விவரங்கள் & பான் கார்டு கோருதல்",
+      "category": "credentials",
+      "weight": 30.0,
+      "evidence": "update your documents immediately at: http://sbi-kyc-update.top/pan-link",
+      "source": "rule"
+    },
+    {
+      "id": "URGENCY_ACCOUNT_BLOCK",
+      "label": "24 மணி நேரத்தில் வங்கி கணக்கு முடக்கப்படும் என்ற மிரட்டல்",
+      "category": "urgency_threat",
+      "weight": 22.0,
+      "evidence": "avoid permanent account freeze and blocking of debit card within 24 hours",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "domain_verifier",
+      "target": "sbi-kyc-update.top",
+      "status": "warn",
+      "detail": "டொமைன் 2 நாட்களுக்கு முன் பதிவு செய்யப்பட்டுள்ளது. SBI நிறுவனத்தின் அதிகாரப்பூர்வ இணையதளம் அல்ல."
+    },
+    {
+      "tool": "urlhaus_verifier",
+      "target": "http://sbi-kyc-update.top/pan-link",
+      "status": "warn",
+      "detail": "வங்கி கடவுச்சொற்களை திருடும் போலி இணையதள வடிவமைப்பு கண்டறியப்பட்டுள்ளது."
+    }
+  ],
+  "explanation": "இந்த செய்தி எஸ்பிஐ வங்கி போல நடித்து அனுப்பப்பட்ட மிக ஆபத்தான ஃபிஷிங் மோசடி. உண்மையான வங்கிகள் ஒருபோதும் .top போன்ற போலி இணைப்புகளை எஸ்எம்எஸ்ஸில் அனுப்பாது அல்லது 24 மணி நேரத்தில் கணக்கு முடக்கப்படும் என மிரட்டாது.",
+  "next_steps": [
+    "குறிப்பிட்ட 'http://sbi-kyc-update.top/pan-link' இணைப்பைத் திறக்க வேண்டாம்.",
+    "உங்கள் நெட்பேங்கிங் கடவுச்சொல், OTP அல்லது பான் எண்ணை ஒருபோதும் பகிர வேண்டாம்.",
+    "அதிகாரப்பூர்வ எஸ்பிஐ யோனோ செயலி (YONO) மூலமாக மட்டுமே கணக்கை சரிபார்க்கவும்.",
+    "இந்த மோசடி எஸ்எம்எஸ் குறித்து 1930 எண்ணில் புகார் அளிக்கவும்."
+  ],
+  "family_alert": {
+    "title": "🚨 அவசரம்: போலி வங்கி KYC கணக்கு முடக்க மோசடி",
+    "body": "வங்கிகள் ஒருபோதும் உங்கள் கணக்கு 24 மணி நேரத்தில் முடக்கப்படும் என்று கூறி எஸ்எம்எஸ்ஸில் லிங்க் அனுப்பாது. தெரியாத லிங்குகளை கிளிக் செய்து பாஸ்வேர்டு போடாதீர்கள்.",
+    "tips": [
+      "கணக்கு முடக்கம் குறித்த எஸ்எம்எஸ் லிங்குகளை கிளிக் செய்யாதீர்கள்.",
+      "வங்கி அதிகாரிகள் ஒருபோதும் OTP கேட்க மாட்டார்கள்.",
+      "அதிகாரப்பூர்வ வங்கி செயலியை மட்டுமே பயன்படுத்தவும்."
+    ]
+  },
+  "limitations": "இந்த மதிப்பீடு வழங்கப்பட்ட உரை மற்றும் படத்தை மட்டுமே அடிப்படையாகக் கொண்டது.",
+  "mode": "mock",
+  "timings_ms": {
+    "total": 338,
+    "extraction": 146,
+    "verifiers": 94,
+    "rules": 29,
+    "explanation": 69
+  }
+}
