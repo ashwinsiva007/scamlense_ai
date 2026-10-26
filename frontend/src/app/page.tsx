@@ -558,16 +558,27 @@ export default function HomePage() {
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span className="font-semibold">{error}</span>
                 </div>
-                {!isDemoMode && activeSampleKey && (
+                {!isDemoMode && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       setIsDemoMode(true);
-                      void handleAnalyze();
+                      setError(null);
+                      const sampleKey = activeSampleKey || "internship";
+                      try {
+                        setIsLoading(true);
+                        const demoRes = await loadDemoResult(sampleKey, language);
+                        setResult(demoRes);
+                        toast("Switched to offline demo mode", "info");
+                      } catch {
+                        toast("Failed to load demo result", "error");
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }}
-                    className="text-xs bg-white text-slate-800"
+                    className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
                   >
                     {t("errors.switchToDemoBtn")}
                   </Button>
