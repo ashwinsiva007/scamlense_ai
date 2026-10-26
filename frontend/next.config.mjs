@@ -32,13 +32,26 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backendUrl}/api/:path*`,
-      },
-    ];
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (backendUrl) {
+      return [
+        {
+          source: "/api/:path*",
+          destination: `${backendUrl}/api/:path*`,
+        },
+      ];
+    }
+    // In local development, route to local FastAPI if running
+    if (process.env.NODE_ENV === "development") {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://127.0.0.1:8000/api/:path*",
+        },
+      ];
+    }
+    // On Vercel in production, use native Next.js API routes
+    return [];
   },
 };
 
