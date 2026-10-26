@@ -79,7 +79,16 @@ export interface BenchmarksResponse {
   last_updated: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // In the browser (e.g. Vercel deployment), relative /api URLs route cleanly to same origin
+  if (typeof window !== "undefined") {
+    return "";
+  }
+  return "http://localhost:8000";
+}
 
 export class ApiNetworkError extends Error {
   isNetworkError = true;
@@ -124,7 +133,7 @@ export async function analyzeMessage(params: {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/analyze`, {
       method: "POST",
       body: formData,
     });
@@ -173,7 +182,7 @@ export async function loadDemoResult(
 }
 
 export async function getHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/health`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/health`, {
     cache: "no-store",
   });
   if (!response.ok) {
@@ -183,7 +192,7 @@ export async function getHealth(): Promise<HealthResponse> {
 }
 
 export async function getBenchmarks(): Promise<BenchmarksResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/benchmarks`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/benchmarks`, {
     cache: "no-store",
   });
   if (!response.ok) {
