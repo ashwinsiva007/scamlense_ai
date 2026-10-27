@@ -24,6 +24,7 @@ from app.schemas import (
 )
 from app.services.explainer import hook_explain
 from app.services.extractor import extract_content
+from app.services.file_utils import process_uploaded_file
 from app.services.image_utils import validate_and_process_image
 from app.services.model_client import ModelClient, get_model_client
 from app.services.rule_engine import evaluate_rules
@@ -79,16 +80,38 @@ async def run_pipeline(
         "total": 0,
     }
 
-    # Step 1: Input Validation & Image Processing
+    # Step 1: Input Validation & Image / Document Processing
     t_val_start = time.perf_counter()
     processed_image_bytes: Optional[bytes] = None
     image_quality: str = "text_only"
+    extracted_doc_text: str = ""
+    doc_urls: List[str] = []
+    doc_notes: List[str] = []
+    doc_sender: Optional[str] = None
+    doc_type: Optional[str] = None
 
     if image_bytes is not None and len(image_bytes) > 0:
-        processed_image_bytes, image_quality = validate_and_process_image(
-            raw_bytes=image_bytes,
-            max_upload_mb=settings.MAX_UPLOAD_MB,
-        )
+        file_input = process_uploaded_file(raw_bytes=image_bytes, filename=filename)
+        if file_input.images:
+            processed_image_bytes, image_quality = file_input.images[0]
+        if file_input.extracted_text:
+            extracted_doc_text = file_input.extracted_text
+        if file_input.hyperlinks:
+            doc_urls = file_input.hyperlinks
+        if file_input.notes:
+            doc_notes = file_input.notes
+        if file_input.sender:
+            doc_sender = file_input.sender
+        if file_input.document_type:
+            doc_type = file_input.document_type
+
+    effective_text: Optional[str] = None
+    if extracted_doc_text and text:
+        effective_text = f"{extracted_doc_text}\n\n{text}".strip()
+    elif extracted_doc_text:
+        effective_text = extracted_doc_text
+    elif text:
+        effective_text = text.strip()
 
     timings["validation"] = max(1, int((time.perf_counter() - t_val_start) * 1000))
 
@@ -96,11 +119,26 @@ async def run_pipeline(
     t_ext_start = time.perf_counter()
     extracted = await extract_content(
         image_bytes=processed_image_bytes,
-        raw_text=text,
+        raw_text=effective_text,
         image_quality=image_quality,
         mode=active_mode,
         model_client=model_client,
     )
+
+    # Post-process extracted fields with document metadata
+    if doc_type and (not extracted.document_type or extracted.document_type in ("unknown", "other")):
+        extracted.document_type = doc_type
+    if doc_sender and not extracted.sender:
+        extracted.sender = doc_sender
+    if doc_urls:
+        for u in doc_urls:
+            if u not in extracted.urls:
+                extracted.urls.append(u)
+    if doc_notes:
+        for n in doc_notes:
+            if n not in extracted.visual_notes:
+                extracted.visual_notes.append(n)
+
     timings["extraction"] = max(1, int((time.perf_counter() - t_ext_start) * 1000))
 
     # Step 3: Check for Insufficient Information

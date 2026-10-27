@@ -21,25 +21,27 @@ export const Footer: React.FC = () => {
               <span className="font-extrabold text-slate-900 text-base">ScamLens</span>
             </div>
             <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              Open-source fraud intelligence separating AI perception from deterministic judgment. Zero-persistence privacy guarantee for every scan.
+              {t("footer.brandDesc")}
             </p>
           </div>
 
           {/* Official Indian Reporting Channels */}
-          {/* Verification note: Official Government of India portals */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
               <PhoneCall className="w-3.5 h-3.5 text-danger" />
-              Report Cyber Fraud (India)
+              {t("footer.reportHeader")}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <span className="text-slate-700 font-semibold">National Helpline:</span>{" "}
+                <span className="text-slate-700 font-semibold">{t("footer.helplineTitle")}</span>{" "}
                 <a
                   href="tel:1930"
                   className="font-bold text-danger hover:underline inline-flex items-center gap-1"
                 >
-                  Dial 1930 <span className="text-[10px] font-normal text-slate-500">(Immediate Financial Freeze)</span>
+                  {t("footer.helplineDial")}{" "}
+                  <span className="text-[10px] font-normal text-slate-500">
+                    {t("footer.helplineNote")}
+                  </span>
                 </a>
               </li>
               <li>
@@ -49,7 +51,7 @@ export const Footer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
                 >
-                  National Cybercrime Portal (cybercrime.gov.in)
+                  {t("footer.portalLabel")}
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               </li>
@@ -60,7 +62,7 @@ export const Footer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
                 >
-                  DoT Sanchar Saathi (Chakshu &amp; CEIR)
+                  {t("footer.sancharLabel")}
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               </li>
@@ -109,11 +111,11 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500 gap-2">
-          <p>© 2026 ScamLens Contributors. {t("footer.rights")}</p>
+          <p>{t("footer.rights")}</p>
           <div className="flex items-center gap-4 font-medium">
             <span className="inline-flex items-center gap-1.5 text-primary font-semibold">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              Service Status: Active
+              {t("footer.serviceStatus")}
             </span>
           </div>
         </div>

@@ -52,8 +52,9 @@ Processes an uploaded image or pasted text to extract entities, evaluate rule pa
 #### Form Fields
 | Field | Type | Required? | Constraints / Description |
 |:---|:---|:---|:---|
-| `image` | `file` (binary) | Optional* | Image screenshot (PNG, JPEG, WebP). Max 8 MB. (*Either `image` or `text` is required). |
-| `text` | `string` | Optional* | Plain text or SMS copy pasted by user. (*Either `image` or `text` is required). |
+| `image` | `file` (binary) | Optional* | Uploaded image or document file. Backward compatible field name. Max 8 MB. (*Either `image`/`file` or `text` is required). Supported formats: Images (PNG, JPG/JPEG, WEBP, GIF, BMP, TIFF, HEIC/HEIF) and Documents (PDF, DOCX, DOC, TXT, RTF, EML). |
+| `file` | `file` (binary) | Optional* | Alias for `image`. Accepts identical image and document formats. (*Either `image`/`file` or `text` is required). |
+| `text` | `string` | Optional* | Plain text or SMS copy pasted by user. (*Either `image`/`file` or `text` is required). |
 | `language` | `string` | Optional | Language for generated verdict & family alert. One of: `"en"` (default), `"ta"`, `"hi"`. |
 | `mode` | `string` | Optional | Override execution mode: `"cloud"`, `"local"`, or `"mock"`. Defaults to system configuration. |
 

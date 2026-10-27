@@ -195,10 +195,10 @@ def test_corrupt_file_error():
 
 
 def test_unsupported_filetype_error():
-    """Uploading plain text or PDF format returns 400."""
+    """Uploading unsupported binary format returns 400."""
     response = client.post(
         "/api/analyze",
-        files={"image": ("test.txt", b"plain text content not an image", "text/plain")},
+        files={"image": ("test.bin", b"\x00\x01\x02\x03\x04notasupportedfiletype", "application/octet-stream")},
         data={"mode": "mock"},
     )
     assert response.status_code == 400

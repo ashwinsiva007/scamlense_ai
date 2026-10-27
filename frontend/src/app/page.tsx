@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload,
   FileText,
-  Camera,
   X,
   Sparkles,
   ArrowRight,
@@ -33,6 +32,43 @@ import { useToast } from "@/components/ui/Toast";
 
 type SampleKey = "internship" | "payment" | "kyc";
 
+const ALLOWED_EXTENSIONS = [
+  ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".heic", ".heif",
+  ".pdf", ".docx", ".doc", ".txt", ".rtf", ".eml"
+];
+
+const ALLOWED_MIME_PREFIXES = [
+  "image/", "application/pdf", "application/vnd.openxmlformats",
+  "application/msword", "text/plain", "application/rtf", "text/rtf", "message/rfc822"
+];
+
+const isImageFile = (file: File | null, preview: string | null): boolean => {
+  if (preview && preview.startsWith("data:image/")) return true;
+  if (!file) return Boolean(preview);
+  if (file.type.startsWith("image/")) return true;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff", "tif", "heic", "heif"].includes(ext || "");
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const getFileTypeLabel = (fileName: string): string => {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "pdf": return "PDF Document";
+    case "docx": return "Word Document (.docx)";
+    case "doc": return "Legacy Word Document (.doc)";
+    case "txt": return "Plain Text (.txt)";
+    case "rtf": return "Rich Text (.rtf)";
+    case "eml": return "Email Message (.eml)";
+    default: return ext ? ext.toUpperCase() : "Document";
+  }
+};
+
 export default function HomePage() {
   const { t, language, setLanguage } = useT();
   const { toast } = useToast();
@@ -49,14 +85,57 @@ export default function HomePage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Validate image file client-side
+  // In-memory reference to last input for language-change re-analysis
+  const lastInputRef = useRef<{
+    file: File | null;
+    text: string;
+    mode: "cloud" | "local";
+    sampleKey: SampleKey | null;
+  } | null>(null);
+
+  const prevLangRef = useRef<Language>(language);
+
+  // Re-run analysis or load translated sample when language is switched while result is showing
+  useEffect(() => {
+    if (prevLangRef.current !== language) {
+      prevLangRef.current = language;
+      if (result && lastInputRef.current) {
+        const lastInput = lastInputRef.current;
+        if (lastInput.sampleKey) {
+          setIsLoading(true);
+          loadDemoResult(lastInput.sampleKey, language)
+            .then((res) => setResult(res))
+            .catch(() => {})
+            .finally(() => setIsLoading(false));
+        } else if (lastInput.file || lastInput.text.trim()) {
+          setIsLoading(true);
+          analyzeMessage({
+            image: lastInput.file,
+            text: lastInput.text,
+            language: language,
+            mode: lastInput.mode,
+          })
+            .then((res) => setResult(res))
+            .catch((err) => {
+              const msg = err instanceof Error ? err.message : t("errors.generic");
+              setError(msg);
+            })
+            .finally(() => setIsLoading(false));
+        }
+      }
+    }
+  }, [language, result, t]);
+
+  // Validate file client-side (Images + Documents)
   const validateAndSetFile = useCallback(
     (file: File) => {
       setError(null);
-      const validTypes = ["image/png", "image/jpeg", "image/webp"];
-      if (!validTypes.includes(file.type)) {
+      const ext = file.name.includes(".") ? `.${file.name.split(".").pop()?.toLowerCase()}` : "";
+      const isAllowedExt = ALLOWED_EXTENSIONS.includes(ext);
+      const isAllowedMime = ALLOWED_MIME_PREFIXES.some((prefix) => file.type.startsWith(prefix));
+
+      if (!isAllowedExt && !isAllowedMime) {
         setError(t("form.invalidFileType"));
         toast(t("form.invalidFileType"), "error");
         return false;
@@ -73,9 +152,13 @@ export default function HomePage() {
       setSelectedFile(file);
       setActiveSampleKey(null);
 
-      const reader = new FileReader();
-      reader.onload = () => setFilePreview(reader.result as string);
-      reader.readAsDataURL(file);
+      if (isImageFile(file, null)) {
+        const reader = new FileReader();
+        reader.onload = () => setFilePreview(reader.result as string);
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview(null);
+      }
       return true;
     },
     [t, toast]
@@ -88,18 +171,17 @@ export default function HomePage() {
 
       if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
         const file = e.clipboardData.files[0];
-        if (file.type.startsWith("image/")) {
-          e.preventDefault();
-          setActiveTab("upload");
-          validateAndSetFile(file);
-          toast("Screenshot pasted from clipboard", "info");
+        e.preventDefault();
+        setActiveTab("upload");
+        if (validateAndSetFile(file)) {
+          toast(t("form.pastedClipboard"), "info");
         }
       }
     };
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [result, validateAndSetFile, toast]);
+  }, [result, validateAndSetFile, toast, t]);
 
   // Check backend health on mount to detect if cloud key is configured
   useEffect(() => {
@@ -135,7 +217,6 @@ export default function HomePage() {
     setFilePreview(null);
     setActiveSampleKey(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   // Load bundled sample image
@@ -187,6 +268,12 @@ export default function HomePage() {
       return;
     }
 
+    lastInputRef.current = {
+      file: selectedFile,
+      text: inputText,
+      mode: selectedMode,
+      sampleKey: activeSampleKey,
+    };
     setIsLoading(true);
 
     try {
@@ -288,8 +375,8 @@ export default function HomePage() {
     setFilePreview(null);
     setActiveSampleKey(null);
     setInputText("");
+    lastInputRef.current = null;
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const hasValidInput = Boolean(selectedFile || filePreview || inputText.trim());
@@ -371,7 +458,7 @@ export default function HomePage() {
               onChange={setActiveTab}
             />
 
-            {/* Tab 1: Screenshot Upload Zone */}
+            {/* Tab 1: File / Screenshot Upload Zone */}
             {activeTab === "upload" ? (
               <div className="space-y-3">
                 <div
@@ -380,14 +467,14 @@ export default function HomePage() {
                   onClick={() => fileInputRef.current?.click()}
                   tabIndex={0}
                   role="button"
-                  aria-label="Upload screenshot area"
+                  aria-label="Upload file area"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       fileInputRef.current?.click();
                     }
                   }}
                   className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    filePreview
+                    filePreview || selectedFile
                       ? "border-primary/50 bg-primary/5"
                       : "border-slate-300 hover:border-primary/60 bg-slate-50/70 hover:bg-slate-50"
                   }`}
@@ -396,18 +483,7 @@ export default function HomePage() {
                     ref={fileInputRef}
                     id="file-upload-input"
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-
-                  {/* Camera capture input for mobile */}
-                  <input
-                    ref={cameraInputRef}
-                    id="camera-capture-input"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
+                    accept=".png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.tif,.heic,.heif,.pdf,.docx,.doc,.txt,.rtf,.eml,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain,application/rtf,text/rtf,message/rfc822"
                     className="hidden"
                     onChange={handleFileChange}
                   />
@@ -446,6 +522,43 @@ export default function HomePage() {
                         </Button>
                       </div>
                     </div>
+                  ) : selectedFile ? (
+                    <div className="space-y-4">
+                      <div className="relative inline-flex flex-col items-center justify-center rounded-2xl border border-slate-200 shadow-md bg-white p-6 max-w-sm mx-auto w-full">
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-100 text-slate-600 hover:bg-danger hover:text-white shadow-sm transition-colors"
+                          aria-label={t("form.removeFile")}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+
+                        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-3">
+                          <FileText className="w-8 h-8" />
+                        </div>
+
+                        <p className="font-bold text-sm text-slate-800 break-all text-center max-w-[260px]">
+                          {selectedFile.name}
+                        </p>
+
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          {getFileTypeLabel(selectedFile.name)} • {formatFileSize(selectedFile.size)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveFile}
+                          className="text-xs text-danger hover:text-danger-dark"
+                        >
+                          {t("form.removeFile")}
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center mx-auto text-primary group-hover:scale-105 transition-transform">
@@ -456,24 +569,9 @@ export default function HomePage() {
                         <p className="text-sm font-bold text-slate-800">
                           {t("form.dragDrop")}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
                           {t("form.fileHint")}
                         </p>
-                      </div>
-
-                      <div className="flex items-center justify-center gap-2 pt-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            cameraInputRef.current?.click();
-                          }}
-                          leftIcon={<Camera className="w-4 h-4 text-primary" />}
-                        >
-                          {t("form.cameraCapture")}
-                        </Button>
                       </div>
                     </div>
                   )}

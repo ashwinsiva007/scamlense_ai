@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { getBenchmarks, BenchmarksResponse } from "@/lib/api";
+import { useT } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/Button";
 
 interface ExtendedBenchmarks {
@@ -41,6 +42,7 @@ interface ExtendedBenchmarks {
 }
 
 export default function BenchmarksPage() {
+  const { t } = useT();
   const [data, setData] = useState<ExtendedBenchmarks | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,13 +111,13 @@ export default function BenchmarksPage() {
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
           <BarChart3 className="w-3.5 h-3.5" />
-          <span>Evaluation & Verification</span>
+          <span>{t("benchmarks.badge")}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Detection Benchmarks
+          {t("benchmarks.title")}
         </h1>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
-          Published evaluation results across English, Tamil, and Hindi fraud test suites (`backend/eval/results.json`).
+          {t("benchmarks.subtitle")}
         </p>
       </div>
 
@@ -129,7 +131,7 @@ export default function BenchmarksPage() {
           <Info className="w-8 h-8 text-slate-400 mx-auto" />
           <p className="text-sm text-slate-700">No benchmark metrics currently available.</p>
           <Button variant="outline" size="sm" onClick={loadData}>
-            Retry
+            {t("benchmarks.refreshDataBtn")}
           </Button>
         </div>
       ) : (
@@ -137,14 +139,22 @@ export default function BenchmarksPage() {
           {/* Metadata bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-100/90 border border-slate-200 text-xs text-slate-600 font-medium">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-800">Dataset Version:</span>
+              <span className="font-bold text-slate-800">{t("benchmarks.datasetVersion")}:</span>
               <code className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">
                 {data.dataset_version}
               </code>
             </div>
             <div className="flex items-center gap-4">
-              <span>Samples Tested: <strong>{data.total_eval_samples}</strong></span>
-              <span>Active Rule Packs: <strong>{data.rule_packs_loaded}</strong></span>
+              <span>{t("benchmarks.rulePacks")}: <strong>{data.rule_packs_loaded}</strong></span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadData}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5 text-slate-500" />}
+                className="text-xs h-7 px-2"
+              >
+                {t("benchmarks.refreshDataBtn")}
+              </Button>
             </div>
           </div>
 
@@ -152,42 +162,50 @@ export default function BenchmarksPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="glass-panel p-5 rounded-2xl border border-slate-200 text-center space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Accuracy
+                {t("benchmarks.accuracy")}
               </span>
               <p className="text-2xl sm:text-3xl font-black text-primary">
                 {(data.accuracy * 100).toFixed(1)}%
               </p>
-              <span className="text-[10px] text-slate-400 block font-medium">Overall correct</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {t("benchmarks.truePositivesDesc")}
+              </span>
             </div>
 
             <div className="glass-panel p-5 rounded-2xl border border-slate-200 text-center space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Precision
+                {t("benchmarks.precision")}
               </span>
               <p className="text-2xl sm:text-3xl font-black text-info">
                 {(data.precision * 100).toFixed(1)}%
               </p>
-              <span className="text-[10px] text-slate-400 block font-medium">True positive rate</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {t("benchmarks.trueNegativesDesc")}
+              </span>
             </div>
 
             <div className="glass-panel p-5 rounded-2xl border border-slate-200 text-center space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Recall
+                {t("benchmarks.recall")}
               </span>
               <p className="text-2xl sm:text-3xl font-black text-emerald-700">
                 {(data.recall * 100).toFixed(1)}%
               </p>
-              <span className="text-[10px] text-slate-400 block font-medium">Caught fraud cases</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {t("benchmarks.comparisonRecall")}
+              </span>
             </div>
 
             <div className="glass-panel p-5 rounded-2xl border border-slate-200 text-center space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                False-Positive Rate
+                {t("benchmarks.falsePositives")}
               </span>
               <p className="text-2xl sm:text-3xl font-black text-slate-900">
                 {(data.false_positive_rate * 100).toFixed(1)}%
               </p>
-              <span className="text-[10px] text-slate-400 block font-medium">Legit flagged as scam</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {t("benchmarks.falsePositivesDesc")}
+              </span>
             </div>
           </div>
 
@@ -195,8 +213,8 @@ export default function BenchmarksPage() {
           <div className="glass-panel p-6 sm:p-7 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Confusion Matrix</h3>
-                <p className="text-xs text-slate-500">Classification distribution over ground-truth test labels</p>
+                <h2 className="text-base font-bold text-slate-900">{t("benchmarks.confusionMatrixTitle")}</h2>
+                <p className="text-xs text-slate-500">{t("benchmarks.confusionMatrixDesc")}</p>
               </div>
               <span className="text-xs font-mono bg-slate-100 px-2.5 py-1 rounded-md text-slate-600">
                 N = {data.total_eval_samples}
@@ -206,55 +224,55 @@ export default function BenchmarksPage() {
             <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto pt-2">
               <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-center space-y-1">
                 <span className="text-[10px] font-bold uppercase text-primary block">
-                  True Positives (TP)
+                  {t("benchmarks.truePositives")} (TP)
                 </span>
                 <span className="text-2xl font-black text-primary font-mono">
                   {data.confusion_matrix.tp}
                 </span>
-                <span className="text-[11px] text-slate-600 block">Scams correctly flagged</span>
+                <span className="text-[11px] text-slate-600 block">{t("benchmarks.truePositivesDesc")}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                 <span className="text-[10px] font-bold uppercase text-slate-500 block">
-                  False Positives (FP)
+                  {t("benchmarks.falsePositivesLabel")} (FP)
                 </span>
                 <span className="text-2xl font-black text-slate-700 font-mono">
                   {data.confusion_matrix.fp}
                 </span>
-                <span className="text-[11px] text-slate-500 block">Genuine flagged as scam</span>
+                <span className="text-[11px] text-slate-500 block">{t("benchmarks.falsePositivesDesc")}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                 <span className="text-[10px] font-bold uppercase text-slate-500 block">
-                  False Negatives (FN)
+                  {t("benchmarks.falseNegatives")} (FN)
                 </span>
                 <span className="text-2xl font-black text-slate-700 font-mono">
                   {data.confusion_matrix.fn}
                 </span>
-                <span className="text-[11px] text-slate-500 block">Scams missed (0%)</span>
+                <span className="text-[11px] text-slate-500 block">{t("benchmarks.falseNegativesDesc")}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-info-light/40 border border-info/30 text-center space-y-1">
                 <span className="text-[10px] font-bold uppercase text-info-dark block">
-                  True Negatives (TN)
+                  {t("benchmarks.trueNegatives")} (TN)
                 </span>
                 <span className="text-2xl font-black text-info-dark font-mono">
                   {data.confusion_matrix.tn}
                 </span>
-                <span className="text-[11px] text-slate-600 block">Genuine correctly cleared</span>
+                <span className="text-[11px] text-slate-600 block">{t("benchmarks.trueNegativesDesc")}</span>
               </div>
             </div>
           </div>
 
-          {/* 3. LLM-only vs ScamLens Hybrid Comparison Bar Chart (Built with plain SVG/CSS) */}
+          {/* 3. LLM-only vs ScamLens Hybrid Comparison */}
           <div className="glass-panel p-6 sm:p-7 rounded-2xl border border-slate-200 space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <span>Detection Comparison: LLM-Only vs. ScamLens Hybrid</span>
-              </h3>
+                <span>{t("benchmarks.comparisonTitle")}</span>
+              </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Evaluated against identical adversarial prompts, multilingual texts, and fake payment receipts.
+                {t("benchmarks.comparisonDesc")}
               </p>
             </div>
 
@@ -262,18 +280,17 @@ export default function BenchmarksPage() {
               {/* Metric 1: Accuracy */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                  <span>Overall Accuracy (%)</span>
+                  <span>{t("benchmarks.comparisonAccuracy")}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-500">LLM-Only: 31.2%</span>
-                    <span className="text-primary font-bold">ScamLens Hybrid: 100%</span>
+                    <span className="text-slate-500">{t("benchmarks.llmOnly")}: 31.2%</span>
+                    <span className="text-primary font-bold">{t("benchmarks.hybridEngine")}: 100%</span>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  {/* LLM Only Bar */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono w-24 text-slate-500 shrink-0">
-                      LLM-Only
+                    <span className="text-[11px] font-mono w-28 text-slate-500 shrink-0">
+                      {t("benchmarks.llmOnly")}
                     </span>
                     <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
                       <div
@@ -284,9 +301,8 @@ export default function BenchmarksPage() {
                     <span className="text-xs font-mono text-slate-600 w-12 text-right">31.2%</span>
                   </div>
 
-                  {/* Hybrid Bar */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono w-24 text-primary font-bold shrink-0">
+                    <span className="text-[11px] font-mono w-28 text-primary font-bold shrink-0">
                       ScamLens
                     </span>
                     <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
@@ -300,21 +316,20 @@ export default function BenchmarksPage() {
                 </div>
               </div>
 
-              {/* Metric 2: Recall on Fraud Samples */}
+              {/* Metric 2: Recall */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                  <span>Fraud Detection Recall (%)</span>
+                  <span>{t("benchmarks.comparisonRecall")}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-500">LLM-Only: 0.0%</span>
-                    <span className="text-emerald-700 font-bold">ScamLens Hybrid: 100%</span>
+                    <span className="text-slate-500">{t("benchmarks.llmOnly")}: 0.0%</span>
+                    <span className="text-emerald-700 font-bold">{t("benchmarks.hybridEngine")}: 100%</span>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  {/* LLM Only Bar */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono w-24 text-slate-500 shrink-0">
-                      LLM-Only
+                    <span className="text-[11px] font-mono w-28 text-slate-500 shrink-0">
+                      {t("benchmarks.llmOnly")}
                     </span>
                     <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
                       <div
@@ -325,9 +340,8 @@ export default function BenchmarksPage() {
                     <span className="text-xs font-mono text-danger w-12 text-right">0.0%</span>
                   </div>
 
-                  {/* Hybrid Bar */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono w-24 text-primary font-bold shrink-0">
+                    <span className="text-[11px] font-mono w-28 text-primary font-bold shrink-0">
                       ScamLens
                     </span>
                     <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
@@ -342,19 +356,12 @@ export default function BenchmarksPage() {
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
-              Why the large gap? Pure LLMs frequently succumb to polite phrasing, lack live domain WHOIS registration age data, and are vulnerable to prompt injection payloads embedded in images. ScamLens combines vision with deterministic verification rules to eliminate these blindspots.
-            </p>
-          </div>
-
-          {/* 4. Limitations Paragraph */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-            <span className="font-bold text-slate-800 block text-sm">
-              Evaluation Methodology &amp; Dataset Limitations:
-            </span>
-            <p>
-              Current evaluation metrics are calculated against the synthetic and semi-synthetic benchmark fixture suite comprising 16 multi-language scenarios spanning UPI scams, fake offer letters, postal courier SMS, and electricity cutoff threats in English, Tamil, and Hindi. While 100% accuracy was achieved on the controlled benchmark set, digital fraudsters continually evolve social engineering lures. Consequently, ScamLens should always be used as an educational advisory layer rather than an infallible guarantee.
-            </p>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+              <h3 className="text-xs font-bold text-slate-900">{t("benchmarks.comparisonExplanation")}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                {t("benchmarks.comparisonExplanationText")}
+              </p>
+            </div>
           </div>
         </div>
       )}

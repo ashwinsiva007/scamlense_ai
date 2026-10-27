@@ -7,37 +7,62 @@ import {
   Server,
   HardDrive,
   ShieldCheck,
-  Cpu,
   Cloud,
-  AlertCircle,
   CheckCircle2,
+  FileCheck2,
 } from "lucide-react";
+import { useT } from "@/context/LanguageContext";
 
 export default function PrivacyPage() {
+  const { t } = useT();
+
   const policies = [
     {
-      title: "Zero-Storage Guarantee",
-      badge: "In-Memory RAM Only",
-      desc: "Uploaded images and pasted texts are processed exclusively in volatile memory (RAM). ScamLens has no database, no file server, and no cloud object buckets. All buffer bytes are released the moment the HTTP response finishes.",
+      title: t("privacy.policy1Title"),
+      badge: t("privacy.policy1Badge"),
+      desc: t("privacy.policy1Desc"),
       icon: <HardDrive className="w-5 h-5 text-primary" />,
     },
     {
-      title: "No Account or Identity Tracking",
-      badge: "Stateless & Anonymous",
-      desc: "ScamLens requires no login, no email address, and no personal profile. We store no session cookies and build no behavioral user graph.",
+      title: t("privacy.policy2Title"),
+      badge: t("privacy.policy2Badge"),
+      desc: t("privacy.policy2Desc"),
       icon: <EyeOff className="w-5 h-5 text-primary" />,
     },
     {
-      title: "No Model Training on Uploads",
-      badge: "Zero-Retention APIs",
-      desc: "Neither your screenshots nor your extracted messages are used to train, tune, or evaluate AI models under any circumstances.",
+      title: t("privacy.policy3Title"),
+      badge: t("privacy.policy3Badge"),
+      desc: t("privacy.policy3Desc"),
       icon: <Lock className="w-5 h-5 text-primary" />,
     },
     {
-      title: "Airgapped Local Mode Available",
-      badge: "100% Private Offline",
-      desc: "For highly sensitive financial files, switch to 'Private, local' mode powered by a local Ollama server. Not a single byte leaves your computer.",
+      title: t("privacy.policy4Title"),
+      badge: t("privacy.policy4Badge"),
+      desc: t("privacy.policy4Desc"),
       icon: <Server className="w-5 h-5 text-primary" />,
+    },
+  ];
+
+  const comparisonRows = [
+    {
+      feature: t("privacy.featureDataTransmission"),
+      cloud: t("privacy.cloudDataTransmission"),
+      local: t("privacy.localDataTransmission"),
+    },
+    {
+      feature: t("privacy.featureDataStorage"),
+      cloud: t("privacy.bothNoStorage"),
+      local: t("privacy.bothNoStorage"),
+    },
+    {
+      feature: t("privacy.featureInternetAccess"),
+      cloud: t("privacy.cloudVerifiers"),
+      local: t("privacy.localVerifiers"),
+    },
+    {
+      feature: t("privacy.featureModelInference"),
+      cloud: t("privacy.cloudModelInference"),
+      local: t("privacy.localModelInference"),
     },
   ];
 
@@ -47,99 +72,57 @@ export default function PrivacyPage() {
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Stateless Privacy Guarantee</span>
+          <span>{t("privacy.badge")}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Privacy Policy &amp; Architecture
+          {t("privacy.title")}
         </h1>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
-          A transparent explanation of how ScamLens handles your screenshots, what is sent where, and how you retain complete control.
+          {t("privacy.subtitle")}
         </p>
       </div>
 
       {/* Cloud vs Local Mode Comparison Table */}
       <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-200 space-y-6 shadow-sm">
         <h2 className="text-lg font-bold text-slate-900">
-          Operating Modes: Cloud vs. Local
+          {t("privacy.comparisonTitle")}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Cloud Mode */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-5 h-5 text-info" />
-                <h3 className="text-base font-bold text-slate-900">Cloud, Verified</h3>
-              </div>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-info-light text-info-dark">
-                Fast &amp; Connected
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Uses Google Gemini cloud inference under strict Zero Data Retention agreements.
-            </p>
-
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-700">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Processes in ~1 second with state-of-the-art vision models.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Queries Google Safe Browsing and URLhaus to catch active phishing.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Zero persistence: neither Google nor ScamLens stores your image.</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Local Mode */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-primary" />
-                <h3 className="text-base font-bold text-slate-900">Private, Local</h3>
-              </div>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary-light text-primary">
-                100% Offline
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Routes model calls directly to a local Ollama instance running on your machine.
-            </p>
-
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-700">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Zero external network transmissions for model reasoning.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Ideal for sensitive financial statements and private letters.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>Open-source rule packs run locally on your CPU/GPU.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Advisory to blur personal data */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-amber-50/80 border border-warning/30 flex items-start gap-4">
-        <AlertCircle className="w-6 h-6 text-warning shrink-0 mt-0.5" />
-        <div className="space-y-1 text-xs sm:text-sm text-slate-800">
-          <h3 className="font-bold text-warning-dark">
-            Proactive Best Practice: Blur Sensitive Personal Identifiers
-          </h3>
-          <p className="leading-relaxed">
-            While ScamLens never retains uploaded media, we strongly encourage users to redact or blur their full bank account numbers, Aadhaar numbers, and physical residential addresses using their phone or PC markup tool before uploading screenshots to Cloud Mode.
-          </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="py-3 px-3 font-bold text-slate-700 w-1/4"></th>
+                <th className="py-3 px-3 font-bold text-info-dark w-3/8">
+                  <div className="flex items-center gap-1.5">
+                    <Cloud className="w-4 h-4 text-info" />
+                    <span>{t("privacy.cloudMode")}</span>
+                  </div>
+                </th>
+                <th className="py-3 px-3 font-bold text-primary w-3/8">
+                  <div className="flex items-center gap-1.5">
+                    <Server className="w-4 h-4 text-primary" />
+                    <span>{t("privacy.localMode")}</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {comparisonRows.map((row, i) => (
+                <tr key={i} className="hover:bg-slate-50/50">
+                  <td className="py-3.5 px-3 font-semibold text-slate-800">
+                    {row.feature}
+                  </td>
+                  <td className="py-3.5 px-3 text-slate-600">
+                    {row.cloud}
+                  </td>
+                  <td className="py-3.5 px-3 text-slate-600">
+                    {row.local}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -158,10 +141,23 @@ export default function PrivacyPage() {
                 {p.badge}
               </span>
             </div>
-            <h3 className="text-base font-bold text-slate-900">{p.title}</h3>
+            <h2 className="text-base font-bold text-slate-900">{p.title}</h2>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">{p.desc}</p>
           </div>
         ))}
+      </div>
+
+      {/* Open Source Audit Commitment Box */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 space-y-2 shadow-sm">
+        <div className="flex items-center gap-2 text-primary">
+          <FileCheck2 className="w-5 h-5" />
+          <h2 className="text-base font-bold text-slate-900">
+            {t("privacy.guaranteeBoxTitle")}
+          </h2>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          {t("privacy.guaranteeBoxDesc")}
+        </p>
       </div>
     </div>
   );

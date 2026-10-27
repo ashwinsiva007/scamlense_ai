@@ -129,6 +129,7 @@ export class ApiRateLimitError extends Error {
 
 export async function analyzeMessage(params: {
   image?: File | null;
+  file?: File | null;
   text?: string;
   language?: Language;
   mode?: Mode;
@@ -140,8 +141,10 @@ export async function analyzeMessage(params: {
   }
 
   const formData = new FormData();
-  if (params.image) {
-    formData.append("image", params.image);
+  const upload = params.file || params.image;
+  if (upload) {
+    formData.append("image", upload);
+    formData.append("file", upload);
   }
   if (params.text && params.text.trim()) {
     formData.append("text", params.text.trim());

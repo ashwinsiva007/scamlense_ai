@@ -5,7 +5,7 @@ import { join } from "path";
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const image = formData.get("image") as File | null;
+    const image = (formData.get("file") as File | null) || (formData.get("image") as File | null);
     const text = (formData.get("text") as string | null) || "";
     const language = ((formData.get("language") as string) || "en") as "en" | "ta" | "hi";
     const mode = (formData.get("mode") as string) || "cloud";

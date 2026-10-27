@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, s
 from app.config import settings
 from app.schemas import AnalyzeResponse, BenchmarksResponse, HealthResponse, LanguageType, ModeType
 from app.api.limiter import get_client_ip, limiter
+from app.services.file_utils import FileValidationError
 from app.services.image_utils import ImageValidationError
 from app.services.model_client import (
     ModelAuthError,
@@ -62,12 +63,13 @@ async def get_health() -> HealthResponse:
 async def analyze_input(
     request: Request,
     image: Optional[UploadFile] = File(None, description="Optional screenshot image file"),
+    file: Optional[UploadFile] = File(None, description="Optional document or image file (alias for image)"),
     text: Optional[str] = Form(None, description="Optional raw text or message content"),
     language: LanguageType = Form("en", description="Target language: en, ta, or hi"),
     mode: Optional[ModeType] = Form(None, description="Execution mode: cloud, local, or mock"),
 ) -> AnalyzeResponse:
     """
-    Analyzes an uploaded screenshot and/or raw text message for indicators of scam and fraud.
+    Analyzes an uploaded screenshot, document, and/or raw text message for indicators of scam and fraud.
     Stateless processing guarantee: uploads are held purely in memory and never written to disk.
     Never logs image bytes or raw message text.
     """
@@ -75,53 +77,54 @@ async def analyze_input(
     client_ip = get_client_ip(request)
     limiter.check_rate_limit(client_ip)
 
-    # 2. Enforce constraint: at least one of image or text required
+    # 2. Enforce constraint: at least one of image/file or text required
+    upload_file = file if (file is not None and bool(file.filename)) else image
     has_text = text is not None and bool(text.strip())
-    has_image = image is not None and bool(image.filename)
+    has_upload = upload_file is not None and bool(upload_file.filename)
 
-    if not has_text and not has_image:
+    if not has_text and not has_upload:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one of 'image' or 'text' must be provided.",
         )
 
-    # 3. Read image binary strictly in memory if supplied
-    image_bytes: Optional[bytes] = None
+    # 3. Read upload binary strictly in memory if supplied
+    file_bytes: Optional[bytes] = None
     filename: Optional[str] = None
 
-    if has_image and image is not None:
-        filename = image.filename
-        image_bytes = await image.read()
+    if has_upload and upload_file is not None:
+        filename = upload_file.filename
+        file_bytes = await upload_file.read()
 
         # Pre-check size to return 413 immediately
         max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
-        if len(image_bytes) > max_bytes:
+        if len(file_bytes) > max_bytes:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"Uploaded file ({len(image_bytes)/(1024*1024):.1f} MB) exceeds maximum allowed limit of {settings.MAX_UPLOAD_MB} MB.",
+                detail=f"Uploaded file ({len(file_bytes)/(1024*1024):.1f} MB) exceeds maximum allowed limit of {settings.MAX_UPLOAD_MB} MB.",
             )
 
     # 4. Execute pipeline with typed error handling
     try:
         result = await run_pipeline(
-            image_bytes=image_bytes,
+            image_bytes=file_bytes,
             filename=filename,
             text=text,
             language=language,
             mode=mode,
         )
         return result
-    except ImageValidationError as ive:
-        err_msg = str(ive)
+    except (FileValidationError, ImageValidationError) as fve:
+        err_msg = str(fve)
         if "exceeds maximum allowed limit" in err_msg:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=err_msg,
-            ) from ive
+            ) from fve
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=err_msg,
-        ) from ive
+        ) from fve
     except ModelAuthError as mae:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

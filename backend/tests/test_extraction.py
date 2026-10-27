@@ -66,13 +66,8 @@ def test_wrong_image_type():
 
 
 def test_unsupported_image_format():
-    # BMP is not in {JPEG, PNG, WEBP}
-    img = Image.new("RGB", (200, 200), (255, 0, 0))
-    buf = io.BytesIO()
-    img.save(buf, format="BMP")
-    bmp_bytes = buf.getvalue()
-
-    files = {"image": ("test.bmp", bmp_bytes, "image/bmp")}
+    # An unsupported file format like .exe / raw binary
+    files = {"image": ("test.exe", b"\x00\x01\x02\x03\x04binaryexecutable", "application/octet-stream")}
     response = client.post("/api/analyze", files=files, data={"mode": "mock"})
     assert response.status_code == 400
     assert "Unsupported image format" in response.json()["detail"]
