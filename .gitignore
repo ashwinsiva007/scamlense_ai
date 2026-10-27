@@ -46,3 +46,5 @@ scratch/
 eval/.cache/
 backend/eval/.cache/
 *.tsbuildinfo
+.vercel
+.env*
