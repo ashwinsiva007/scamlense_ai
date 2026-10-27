@@ -323,14 +323,14 @@ Return ONLY valid JSON matching this schema:
 
     // Background payment screenshot entity & authenticity enrichment
     const combinedText = `${text} ${
-      typeof geminiResult.extracted === "object" && geminiResult.extracted !== null
-        ? (geminiResult.extracted as Record<string, unknown>).message_text || ""
+      typeof normalized.extracted === "object" && normalized.extracted !== null
+        ? (normalized.extracted as Record<string, unknown>).message_text || ""
         : ""
     }`;
     const paymentData = parsePaymentFields(combinedText);
 
-    if (geminiResult.extracted && typeof geminiResult.extracted === "object") {
-      const ext = geminiResult.extracted as Record<string, unknown>;
+    if (normalized.extracted && typeof normalized.extracted === "object") {
+      const ext = normalized.extracted as Record<string, unknown>;
       const amounts: string[] = Array.isArray(ext.amounts) ? [...(ext.amounts as string[])] : [];
       const upiIds: string[] = Array.isArray(ext.upi_ids) ? [...(ext.upi_ids as string[])] : [];
       const phones: string[] = Array.isArray(ext.phone_numbers) ? [...(ext.phone_numbers as string[])] : [];
@@ -362,13 +362,13 @@ Return ONLY valid JSON matching this schema:
       ext.visual_notes = visualNotes;
     }
 
-    if (!Array.isArray(geminiResult.tool_results)) {
-      geminiResult.tool_results = [];
+    if (!Array.isArray(normalized.tool_results)) {
+      normalized.tool_results = [];
     }
 
     if (paymentData.transaction_id) {
       const is12Digit = /^\d{12}$/.test(paymentData.transaction_id);
-      (geminiResult.tool_results as Array<Record<string, unknown>>).push({
+      (normalized.tool_results as Array<Record<string, unknown>>).push({
         tool: "payment_fields",
         target: paymentData.transaction_id,
         status: is12Digit || paymentData.transaction_id.startsWith("T") ? "ok" : "warn",
@@ -379,7 +379,7 @@ Return ONLY valid JSON matching this schema:
     }
 
     if (paymentData.status) {
-      (geminiResult.tool_results as Array<Record<string, unknown>>).push({
+      (normalized.tool_results as Array<Record<string, unknown>>).push({
         tool: "payment_fields",
         target: "status",
         status: paymentData.status === "Success" ? "ok" : "warn",
