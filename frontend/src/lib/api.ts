@@ -165,10 +165,19 @@ export async function analyzeMessage(params: {
   }
 
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/analyze`, {
-      method: "POST",
-      body: formData,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${getApiBaseUrl()}/api/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+    } catch {
+      // If primary host unreachable, fall back to relative Next.js serverless route
+      response = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      });
+    }
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -225,13 +234,22 @@ export async function loadDemoResult(
 }
 
 export async function getHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/api/health`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/health`, {
+      cache: "no-store",
+    });
+    if (response.ok) {
+      return (await response.json()) as HealthResponse;
+    }
+  } catch {
+    // fallback to relative route
+  }
+
+  const fallback = await fetch("/api/health", { cache: "no-store" });
+  if (!fallback.ok) {
     throw new Error("Health check failed");
   }
-  return (await response.json()) as HealthResponse;
+  return (await fallback.json()) as HealthResponse;
 }
 
 export async function getBenchmarks(): Promise<BenchmarksResponse> {

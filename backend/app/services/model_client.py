@@ -156,10 +156,10 @@ class CloudGeminiClient(ModelClient):
         # Route multimodal images away from text-only Gemma models
         primary = self.model_name
         if images and "gemma" in primary.lower():
-            primary = "gemini-3.1-flash-lite-preview"
+            primary = "gemini-3.5-flash-lite"
 
         candidate_models = [primary]
-        for fallback in ["gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-flash-latest"]:
+        for fallback in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemma-4-26b-a4b-it"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 

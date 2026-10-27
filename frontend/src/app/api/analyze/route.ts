@@ -35,6 +35,58 @@ const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> =
   },
 };
 
+const CANDIDATE_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
+];
+
+async function callGeminiCloud(
+  apiKey: string,
+  parts: Array<Record<string, unknown>>,
+  systemInstruction: string
+): Promise<Record<string, unknown>> {
+  let lastError: Error | null = null;
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+        },
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Model ${model} status ${res.status}: ${errorText.slice(0, 150)}`);
+      }
+
+      const json = await res.json();
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw new Error(`Model ${model} returned empty content.`);
+      }
+
+      return JSON.parse(rawText) as Record<string, unknown>;
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      continue;
+    }
+  }
+
+  throw lastError || new Error("All Gemini candidate models failed to respond.");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -42,6 +94,7 @@ export async function POST(req: NextRequest) {
     const text = (formData.get("text") as string | null) || "";
     const language = ((formData.get("language") as string) || "en") as "en" | "ta" | "hi";
     const mode = (formData.get("mode") as string) || "cloud";
+    const safeLang = ["en", "ta", "hi"].includes(language) ? language : "en";
 
     // 1. If an external backend is configured (e.g. on Render, Droplet, or AWS), forward the request
     const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -60,7 +113,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. In demo/serverless mode, only return cached results for exact built-in samples
+    // 2. Check if the file is one of the built-in sample chips
     const filename = image?.name || "";
     let sampleKey: "internship" | "payment" | "kyc" | "bank_alert" | null = null;
     if (filename === "fake_internship_offer.png") {
@@ -73,34 +126,125 @@ export async function POST(req: NextRequest) {
       sampleKey = "bank_alert";
     }
 
-    if (!sampleKey) {
-      return NextResponse.json(
-        {
-          error_code: "DEMO_MODE_RESTRICTION",
-          detail: "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.",
-          message: "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.",
-        },
-        { status: 400 }
-      );
+    if (sampleKey) {
+      const localizedSamples = SAMPLE_DATABASE[sampleKey] || SAMPLE_DATABASE.internship;
+      const analysisData = localizedSamples[safeLang] || localizedSamples.en;
+
+      return NextResponse.json({
+        ...analysisData,
+        request_id: `sl-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+        language: safeLang,
+        mode: mode === "local" ? "local" : "cloud",
+        limitations: "Analyzed with ScamLens verified intelligence engine. Absence of detected red flags does not guarantee authenticity.",
+      });
     }
 
-    // 3. Load pre-verified, localized analysis directly from bundled JSON
-    const safeLang = ["en", "ta", "hi"].includes(language) ? language : "en";
-    const localizedSamples = SAMPLE_DATABASE[sampleKey] || SAMPLE_DATABASE.internship;
-    const analysisData = localizedSamples[safeLang] || localizedSamples.en;
+    // 3. For custom uploads or pasted text, execute live Gemini Cloud API inference
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error_code: "CLOUD_KEY_MISSING",
+          detail: "Gemini API key is not configured. Please set GEMINI_API_KEY in your environment or Vercel dashboard.",
+          message: "Gemini API key is not configured. Please set GEMINI_API_KEY in your environment or Vercel dashboard.",
+        },
+        { status: 401 }
+      );
+    }
+    const parts: Array<Record<string, unknown>> = [];
 
-    // Return with a unique request ID and execution metadata
-    const responsePayload = {
-      ...analysisData,
+    if (image && image.size > 0) {
+      const bytes = await image.arrayBuffer();
+      const base64 = Buffer.from(bytes).toString("base64");
+      const mimeType = image.type || "image/png";
+      parts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: base64,
+        },
+      });
+    }
+
+    const inputContext = text.trim()
+      ? `User provided message text:\n"""\n${text.trim()}\n"""\n`
+      : "";
+    const langInstruction =
+      safeLang === "ta"
+        ? "Respond strictly in Tamil for all explanations, tips, and family alert content."
+        : safeLang === "hi"
+        ? "Respond strictly in Hindi for all explanations, tips, and family alert content."
+        : "Respond strictly in clear English.";
+
+    parts.push({
+      text: `${inputContext}Analyze this document/screenshot for red flags, deceptive patterns, phishing attempts, fake job offers, fake payment receipts, or genuine communication. ${langInstruction}`,
+    });
+
+    const systemInstruction = `You are ScamLens, a world-class explainable scam intelligence system.
+Analyze the user's input with deterministic rigor. Detect red flags, psychological pressure (urgency, panic, too good to be true), suspicious UPI/bank patterns, and brand impersonation.
+Score the risk from 0 (completely genuine) to 100 (confirmed malicious scam).
+Bands:
+- "low_risk" (score 0-25)
+- "suspicious" (score 26-65)
+- "likely_scam" (score 66-100)
+- "insufficient_info" (unreadable image or no discernible content)
+
+Return ONLY valid JSON matching this schema:
+{
+  "band": "low_risk" | "suspicious" | "likely_scam" | "insufficient_info",
+  "score": number,
+  "confidence": "high" | "medium" | "low",
+  "scam_type": string or null,
+  "explanation": "concise 2-3 sentence explanation explaining why this verdict was chosen",
+  "next_steps": ["actionable advice 1", "actionable advice 2", "actionable advice 3"],
+  "extracted": {
+    "document_type": string,
+    "sender": string or null,
+    "message_text": string,
+    "urls": string[],
+    "phone_numbers": string[],
+    "upi_ids": string[],
+    "amounts": string[],
+    "claimed_brand": string or null,
+    "detected_language": string,
+    "image_quality": "good" | "fair" | "poor",
+    "visual_notes": string[]
+  },
+  "signals": [
+    {
+      "id": string,
+      "label": string,
+      "category": string,
+      "weight": number,
+      "evidence": string,
+      "source": "model"
+    }
+  ],
+  "tool_results": [],
+  "family_alert": {
+    "title": "Short Warning Title",
+    "body": "Simple plain-language summary suitable for forwarding via WhatsApp to family or elders",
+    "tips": ["Clear protective tip 1", "Clear protective tip 2"]
+  }
+}`;
+
+    const geminiResult = await callGeminiCloud(apiKey, parts, systemInstruction);
+
+    return NextResponse.json({
+      ...geminiResult,
       request_id: `sl-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       language: safeLang,
-      mode: mode === "local" ? "local" : "cloud",
-      limitations: "Analyzed with ScamLens verified intelligence engine. Absence of detected red flags does not guarantee authenticity.",
-    };
-
-    return NextResponse.json(responsePayload);
+      mode: "cloud",
+      limitations: "Analyzed with ScamLens live Gemini Cloud vision engine. Absence of detected red flags does not guarantee authenticity.",
+    });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal Server Error";
-    return NextResponse.json({ detail: errorMsg }, { status: 500 });
+    return NextResponse.json(
+      {
+        error_code: "ANALYSIS_ERROR",
+        detail: `Analysis failed: ${errorMsg}. Please ensure your image is clear and try again.`,
+        message: `Analysis failed: ${errorMsg}. Please ensure your image is clear and try again.`,
+      },
+      { status: 500 }
+    );
   }
 }

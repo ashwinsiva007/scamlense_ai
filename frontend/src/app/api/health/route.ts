@@ -13,14 +13,14 @@ export async function GET() {
     }
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || "";
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
   const hasKey = apiKey.length > 0 && !apiKey.toLowerCase().includes("placeholder") && !apiKey.toLowerCase().includes("your_");
 
   return NextResponse.json({
     status: "ok",
     mode: hasKey ? "cloud" : "mock",
-    model: "gemini-3.1-flash-lite-preview",
-    model_name: "gemini-3.1-flash-lite-preview",
+    model: "gemini-3.5-flash-lite",
+    model_name: "gemini-3.5-flash-lite",
     env_file_loaded: hasKey ? "process.env" : "none",
     key_configured: hasKey,
     key_length: hasKey ? apiKey.length : 0,
