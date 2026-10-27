@@ -44,6 +44,7 @@ export default function HomePage() {
   const [activeSampleKey, setActiveSampleKey] = useState<SampleKey | null>(null);
   const [inputText, setInputText] = useState("");
   const [selectedMode, setSelectedMode] = useState<"cloud" | "local">("cloud");
+  const [isOllamaAvailable, setIsOllamaAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(() => process.env.NEXT_PUBLIC_DEMO_MODE === "true");
@@ -106,6 +107,7 @@ export default function HomePage() {
   useEffect(() => {
     getHealth()
       .then((health) => {
+        setIsOllamaAvailable(Boolean(health.ollama_reachable));
         // Clear demo mode if live connection is healthy
         if (health.key_configured && health.live_ok) {
           setIsDemoMode(false);
@@ -210,6 +212,14 @@ export default function HomePage() {
           toast(demoWarning, "info");
           return;
         }
+      }
+
+      // Guard against running local mode when Ollama is offline
+      if (selectedMode === "local" && !isOllamaAvailable) {
+        const ollamaWarning = "Cannot connect to local Ollama at http://localhost:11434. Switch to Cloud mode to analyze with your live Gemini API key.";
+        setError(ollamaWarning);
+        toast(ollamaWarning, "info");
+        return;
       }
 
       // Live mode call (Cloud or Local)
@@ -533,11 +543,24 @@ export default function HomePage() {
                     },
                     {
                       value: "local",
-                      label: t("form.modeLocalLabel"),
+                      label: isOllamaAvailable
+                        ? t("form.modeLocalLabel")
+                        : `${t("form.modeLocalLabel")} (Offline)`,
+                      disabled: !isOllamaAvailable,
+                      title: isOllamaAvailable
+                        ? t("form.modeLocalTooltip")
+                        : "Local Ollama daemon is offline (http://localhost:11434). Run Ollama to enable.",
                     },
                   ]}
                   value={selectedMode}
-                  onChange={(val) => setSelectedMode(val)}
+                  onChange={(val) => {
+                    if (val === "local" && !isOllamaAvailable) {
+                      toast("Local Ollama is offline. Cloud mode (Gemini) remains active.", "info");
+                      return;
+                    }
+                    setSelectedMode(val);
+                    setError(null);
+                  }}
                 />
               </div>
             </div>
@@ -606,37 +629,55 @@ export default function HomePage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-xl bg-danger-light border border-danger/30 p-3.5 text-xs text-danger-dark flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                className="rounded-xl bg-danger-light border border-danger/30 p-3.5 text-xs text-danger-dark flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
               >
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-danger" />
                   <span className="font-semibold">{error}</span>
                 </div>
-                {!isDemoMode && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      setIsDemoMode(true);
-                      setError(null);
-                      const sampleKey = activeSampleKey || "internship";
-                      try {
-                        setIsLoading(true);
-                        const demoRes = await loadDemoResult(sampleKey, language);
-                        setResult(demoRes);
-                        toast("Switched to offline demo mode", "info");
-                      } catch {
-                        toast("Failed to load demo result", "error");
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
-                  >
-                    {t("errors.switchToDemoBtn")}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {(selectedMode === "local" || error.toLowerCase().includes("ollama")) && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedMode("cloud");
+                        setError(null);
+                        toast("Switched to Live Cloud API (Gemini)", "success");
+                      }}
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 font-bold"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Switch to Live Cloud (Gemini)</span>
+                    </Button>
+                  )}
+                  {!isDemoMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        setIsDemoMode(true);
+                        setError(null);
+                        const sampleKey = activeSampleKey || "internship";
+                        try {
+                          setIsLoading(true);
+                          const demoRes = await loadDemoResult(sampleKey, language);
+                          setResult(demoRes);
+                          toast("Switched to offline demo mode", "info");
+                        } catch {
+                          toast("Failed to load demo result", "error");
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
+                    >
+                      {t("errors.switchToDemoBtn")}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 

@@ -209,10 +209,15 @@ async def analyze_input(
         )
     except ModelUnavailableError as mue:
         err_text = str(mue)
-        detail_msg = f"Model service currently unavailable: {err_text}"
+        is_ollama = "ollama" in err_text.lower()
+        err_code = "OLLAMA_UNAVAILABLE" if is_ollama else "SERVICE_UNAVAILABLE"
+        if is_ollama:
+            detail_msg = f"Cannot connect to local Ollama daemon at {settings.OLLAMA_BASE_URL}. Ensure Ollama daemon is running, or switch to Cloud mode for live Gemini analysis."
+        else:
+            detail_msg = f"Model service currently unavailable: {err_text}"
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={"detail": detail_msg, "error_code": "SERVICE_UNAVAILABLE", "message": err_text},
+            content={"detail": detail_msg, "error_code": err_code, "message": detail_msg},
         )
     except ModelClientError as mce:
         err_text = str(mce)
