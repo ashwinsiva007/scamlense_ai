@@ -153,13 +153,9 @@ class CloudGeminiClient(ModelClient):
                 raise ModelClientError("Model returned an empty response.")
             return response.text
 
-        # Route multimodal images away from text-only Gemma models
         primary = self.model_name
-        if images and "gemma" in primary.lower():
-            primary = "gemini-3.5-flash-lite"
-
         candidate_models = [primary]
-        for fallback in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemma-4-26b-a4b-it"]:
+        for fallback in ["gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 

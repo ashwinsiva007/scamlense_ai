@@ -26,12 +26,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ScamLens API"])
 
 
+import time
+
+_live_cache = {
+    "timestamp": 0.0,
+    "live_ok": False,
+}
+
+
+async def _check_live_model_health(active_model: str) -> bool:
+    now = time.time()
+    if now - _live_cache["timestamp"] < 60.0:
+        return _live_cache["live_ok"]
+
+    if settings.MODE != "cloud" or not is_cloud_key_configured():
+        _live_cache["timestamp"] = now
+        _live_cache["live_ok"] = False
+        return False
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        import asyncio
+        loop = asyncio.get_running_loop()
+
+        def _call_probe():
+            res = client.models.generate_content(
+                model=active_model,
+                contents="OK",
+            )
+            return bool(res and res.text)
+
+        ok = await loop.run_in_executor(None, _call_probe)
+        _live_cache["live_ok"] = ok
+    except Exception as e:
+        logger.warning(f"Live model probe check failed: {e}")
+        _live_cache["live_ok"] = False
+
+    _live_cache["timestamp"] = now
+    return _live_cache["live_ok"]
+
+
 @router.get("/health", response_model=HealthResponse)
 async def get_health() -> HealthResponse:
     """
     Returns system status, operating mode, model identifier,
     Ollama connectivity status, key configuration status, key length, SDK version,
-    env file path loaded, process ID, and startup timestamp.
+    env file path loaded, process ID, startup timestamp, and live_ok cached probe.
     Never returns the API key value.
     """
     ollama_ok = await check_ollama_health(settings.OLLAMA_BASE_URL)
@@ -45,6 +86,7 @@ async def get_health() -> HealthResponse:
         sdk_ver = "not_installed"
 
     active_model = settings.GEMMA_MODEL if settings.MODE == "cloud" else settings.OLLAMA_MODEL
+    live_ok = await _check_live_model_health(active_model)
 
     return HealthResponse(
         status="ok",
@@ -52,6 +94,7 @@ async def get_health() -> HealthResponse:
         model=active_model,
         model_name=active_model,
         env_file_loaded=settings.ENV_FILE_LOADED,
+        env_file_path_loaded=settings.ENV_FILE_LOADED,
         key_configured=cloud_key_ok,
         key_length=key_len,
         sdk_version=sdk_ver,
@@ -59,6 +102,7 @@ async def get_health() -> HealthResponse:
         started_at=SERVER_STARTED_AT,
         ollama_reachable=ollama_ok,
         cloud_key_set=cloud_key_ok,
+        live_ok=live_ok,
     )
 
 

@@ -154,7 +154,7 @@ def main():
         sys.exit(1)
 
     # 6. Make a small image test request
-    vision_model = target_model if not ("gemma" in target_model.lower()) else "gemini-3-flash-preview"
+    vision_model = target_model
     print(f"\n[4] Testing tiny image multimodal request to model: '{vision_model}'...")
 
     try:
@@ -192,12 +192,10 @@ def _diagnose_error(err_msg: str, sdk_version: str, key: str):
 
     if "401" in lower_err or "403" in lower_err or "api_key" in lower_err or "permission_denied" in lower_err:
         print("\n  Category: AUTHENTICATION / PERMISSION ERROR (HTTP 401 / 403)")
+        print(f"  API message: {err_msg}")
         print("  Possible causes:")
         print("  1. The API key may be invalid, revoked, or expired.")
-        if not key.startswith("AIzaSy"):
-            print("  2. Note: Your key does NOT begin with 'AIzaSy'. Standard Google AI Studio")
-            print("     keys start with 'AIzaSy...'. If you generated this key from another Google")
-            print("     service or Vertex AI, verify that the Generative Language API is enabled.")
+        print("  2. Verify that the Generative Language API is enabled in your Google Cloud Project.")
         print("  3. To generate a fresh, free AI Studio key in 30 seconds:")
         print("     Visit: https://aistudio.google.com/app/apikey")
         print(f"  Installed google-genai version: {sdk_version}")

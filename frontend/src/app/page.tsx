@@ -46,7 +46,7 @@ export default function HomePage() {
   const [selectedMode, setSelectedMode] = useState<"cloud" | "local">("cloud");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(() => process.env.NEXT_PUBLIC_DEMO_MODE === "true");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,18 +102,20 @@ export default function HomePage() {
     return () => window.removeEventListener("paste", handlePaste);
   }, [result, validateAndSetFile, toast]);
 
-  // Check backend health on mount to detect if cloud key is configured
+  // Check backend health on mount to detect live connectivity
   useEffect(() => {
     getHealth()
       .then((health) => {
-        // If cloud key is not set in this deployment, default to demo mode so samples work instantly
-        if (!health.key_configured) {
+        // Clear demo mode if live connection is healthy
+        if (health.key_configured && health.live_ok) {
+          setIsDemoMode(false);
+          setError(null);
+        } else if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
           setIsDemoMode(true);
         }
       })
       .catch(() => {
-        // If backend is unreachable or local server not running, enable demo mode for offline demonstration
-        setIsDemoMode(true);
+        // Do not silently enable demo mode on network errors
       });
   }, []);
 
@@ -244,14 +246,20 @@ export default function HomePage() {
     setIsLoading(true);
     try {
       const h = await getHealth();
-      if (h.key_configured) {
+      if (h.key_configured && h.live_ok) {
         setIsDemoMode(false);
         setSelectedMode("cloud");
         setError(null);
         toast("Connected to Live Cloud API!", "success");
       } else {
-        toast("Live API key is not configured in backend/.env", "error");
-        setError("Gemini API key is not configured in backend/.env. Please configure your key in backend/.env or use Local mode.");
+        let reason = "Live API key is not configured in backend/.env";
+        if (h.key_configured && !h.live_ok) {
+          reason = `Gemini key is configured (${h.model}), but model probe failed. Please verify API quotas or model access.`;
+        } else if (!h.key_configured) {
+          reason = "Live API key is not configured in backend/.env";
+        }
+        toast(reason, "error");
+        setError(reason);
       }
     } catch {
       toast("Backend server unreachable. Make sure backend is running on port 8000.", "error");

@@ -65,6 +65,7 @@ export interface HealthResponse {
   model: string;
   model_name?: string;
   env_file_loaded?: string;
+  env_file_path_loaded?: string;
   key_configured?: boolean;
   key_length?: number;
   sdk_version?: string;
@@ -72,6 +73,7 @@ export interface HealthResponse {
   started_at?: string;
   ollama_reachable: boolean;
   cloud_key_set: boolean;
+  live_ok?: boolean;
 }
 
 export interface BenchmarksResponse {
@@ -234,22 +236,14 @@ export async function loadDemoResult(
 }
 
 export async function getHealth(): Promise<HealthResponse> {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/api/health`, {
-      cache: "no-store",
-    });
-    if (response.ok) {
-      return (await response.json()) as HealthResponse;
-    }
-  } catch {
-    // fallback to relative route
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/health`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Health check failed with status: ${response.status}`);
   }
-
-  const fallback = await fetch("/api/health", { cache: "no-store" });
-  if (!fallback.ok) {
-    throw new Error("Health check failed");
-  }
-  return (await fallback.json()) as HealthResponse;
+  return (await response.json()) as HealthResponse;
 }
 
 export async function getBenchmarks(): Promise<BenchmarksResponse> {

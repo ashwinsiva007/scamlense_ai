@@ -27,11 +27,12 @@ SERVER_STARTED_AT = datetime.now(timezone.utc).isoformat()
 
 
 def clean_key(val: Optional[str]) -> str:
-    """Strips quotes and whitespace, and filters out common placeholder values. Does not restrict prefix."""
+    """Strips quotes, BOM, and whitespace, and filters out common placeholder values. Does not restrict prefix."""
     if not val:
         return ""
-    clean = str(val).strip().strip("'\"")
-    if clean.lower() in PLACEHOLDER_KEYS:
+    clean = str(val).strip().strip("'\"").strip()
+    clean = clean.lstrip("\ufeff")
+    if clean.lower() in PLACEHOLDER_KEYS or clean.lower().startswith(("your_", "placeholder", "changeme", "paste_your_")):
         return ""
     return clean
 
@@ -59,7 +60,7 @@ def extract_key_from_file(file_path: Path) -> str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(str(BACKEND_ENV), str(ROOT_ENV)),
+        env_file=(str(ROOT_ENV), str(BACKEND_ENV)),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -129,15 +130,13 @@ class Settings(BaseSettings):
     def resolve_and_clean_config(cls, data: Any) -> Any:
         if isinstance(data, dict):
             # Priority for GEMINI_API_KEY:
-            # 1. os.environ (explicit runtime override)
-            # 2. backend/.env (absolute path)
-            # 3. repo root .env (fallback)
+            # 1. backend/.env (absolute path)
+            # 2. repo root .env (fallback)
+            # 3. os.environ (runtime environment)
             # 4. parsed dict fields from pydantic-settings
             loaded_env = "none"
-            raw_key = clean_key(os.environ.get("GEMINI_API_KEY")) or clean_key(os.environ.get("GOOGLE_API_KEY"))
-            if raw_key:
-                loaded_env = "os.environ"
-            elif BACKEND_ENV.is_file():
+            raw_key = ""
+            if BACKEND_ENV.is_file():
                 k = extract_key_from_file(BACKEND_ENV)
                 if k:
                     raw_key = k
@@ -148,6 +147,12 @@ class Settings(BaseSettings):
                 if k:
                     raw_key = k
                     loaded_env = str(ROOT_ENV)
+
+            if not raw_key:
+                k = clean_key(os.environ.get("GEMINI_API_KEY")) or clean_key(os.environ.get("GOOGLE_API_KEY"))
+                if k:
+                    raw_key = k
+                    loaded_env = "os.environ"
 
             if not raw_key:
                 k = clean_key(data.get("GEMINI_API_KEY")) or clean_key(data.get("GOOGLE_API_KEY"))
