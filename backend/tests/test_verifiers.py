@@ -7,6 +7,7 @@ Tests IP address safety, SSRF blocking, lookalike domain matching, and payment f
 import pytest
 from app.schemas import ExtractedData
 from app.services.verifiers import (
+    check_image_authenticity,
     check_lookalike_domain,
     check_payment_fields,
     check_phone_format,
@@ -126,3 +127,23 @@ class TestPaymentAndPhoneValidators:
         results, signals = check_phone_format(phones)
         assert any(s.id == "SENDER_SUSPICIOUS_COUNTRY_CODE" for s in signals)
         assert any("+92" in s.evidence for s in signals)
+
+    def test_payment_status_pending_or_failed(self):
+        text = "Your payment of Rs 5000 is currently pending in queue."
+        results, signals = check_payment_fields(text, [])
+        assert any(s.id == "PAY_PENDING_STATUS_AS_PAID" for s in signals)
+        assert any(r.target == "status" and r.status == "warn" for r in results)
+
+    def test_payment_app_and_bank_detection(self):
+        text = "Paid via Google Pay to State Bank of India ••4321. Txn ID: 429812984123"
+        results, signals = check_payment_fields(text, [])
+        assert any(r.target == "payment_app" and "Google Pay" in r.detail for r in results)
+        assert any(r.target == "bank" and "State Bank of India" in r.detail for r in results)
+
+    def test_image_authenticity_editor_metadata(self):
+        fake_canva_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00Created with Canva editing app\xff\xd9"
+        results, signals, notes = check_image_authenticity(fake_canva_bytes)
+        assert any(s.id == "PAY_EDITED_CROPPED_IMAGE" for s in signals)
+        assert any("Canva" in r.detail for r in results)
+        assert any("Canva" in n for n in notes)
+

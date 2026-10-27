@@ -30,6 +30,7 @@ import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
 import { Greeting } from "@/components/Greeting";
 import { useToast } from "@/components/ui/Toast";
+import { checkClientAuthenticity } from "@/lib/paymentScreenshot";
 
 type SampleKey = "internship" | "payment" | "kyc" | "bank_alert";
 
@@ -309,6 +310,12 @@ export default function HomePage() {
         return;
       }
 
+      // Run client-side background payment screenshot & tampering analysis concurrently
+      const clientAuthPromise =
+        selectedFile && isImageFile(selectedFile, null)
+          ? checkClientAuthenticity(selectedFile, inputText).catch(() => null)
+          : Promise.resolve(null);
+
       // Live mode call (Cloud or Local)
       const res = await analyzeMessage({
         image: selectedFile,
@@ -316,6 +323,103 @@ export default function HomePage() {
         language: language,
         mode: selectedMode,
       });
+
+      const clientAuth = await clientAuthPromise;
+      if (clientAuth) {
+        // 1. Incorporate local duplicate screenshot / transaction ID reuse warnings
+        if (clientAuth.seenBefore.exactImageDate) {
+          res.tool_results.unshift({
+            tool: "screenshot_reuse",
+            target: "image_hash",
+            status: "warn",
+            detail: `This exact screenshot was previously verified in this browser on ${new Date(
+              clientAuth.seenBefore.exactImageDate
+            ).toLocaleDateString()}.`,
+          });
+          res.signals.unshift({
+            id: "PAY_REUSED_SCREENSHOT",
+            label: "Previously Verified or Recycled Screenshot",
+            category: "payment_screenshot",
+            weight: 20.0,
+            evidence: `Exact duplicate screenshot hash found in local verification history (${new Date(
+              clientAuth.seenBefore.exactImageDate
+            ).toLocaleDateString()})`,
+            source: "tool",
+          });
+        } else if (clientAuth.seenBefore.transactionIdDate) {
+          res.tool_results.unshift({
+            tool: "screenshot_reuse",
+            target: "transaction_id",
+            status: "warn",
+            detail: `This transaction ID previously appeared in a different screenshot on ${new Date(
+              clientAuth.seenBefore.transactionIdDate
+            ).toLocaleDateString()}.`,
+          });
+          res.signals.unshift({
+            id: "PAY_REUSED_SCREENSHOT",
+            label: "Previously Verified or Recycled Screenshot",
+            category: "payment_screenshot",
+            weight: 20.0,
+            evidence: `Duplicate transaction ID found in verification history (${new Date(
+              clientAuth.seenBefore.transactionIdDate
+            ).toLocaleDateString()})`,
+            source: "tool",
+          });
+        }
+
+        // 2. Incorporate parsed payment fields if missing
+        if (clientAuth.parsed.amount) {
+          const amtStr =
+            clientAuth.parsed.currency === "INR"
+              ? `₹${clientAuth.parsed.amount}`
+              : clientAuth.parsed.amount;
+          if (
+            !res.extracted.amounts.includes(amtStr) &&
+            !res.extracted.amounts.includes(clientAuth.parsed.amount)
+          ) {
+            res.extracted.amounts.push(amtStr);
+          }
+        }
+        for (const u of clientAuth.parsed.upi_ids) {
+          if (!res.extracted.upi_ids.includes(u)) {
+            res.extracted.upi_ids.push(u);
+          }
+        }
+        if (
+          clientAuth.parsed.phone &&
+          !res.extracted.phone_numbers.includes(clientAuth.parsed.phone)
+        ) {
+          res.extracted.phone_numbers.push(clientAuth.parsed.phone);
+        }
+        if (clientAuth.parsed.bank && !res.extracted.claimed_brand) {
+          res.extracted.claimed_brand = clientAuth.parsed.bank;
+        }
+        if (clientAuth.parsed.payment_app && !res.extracted.claimed_brand) {
+          res.extracted.claimed_brand = clientAuth.parsed.payment_app;
+        }
+
+        // 3. ELA compression anomaly
+        if (clientAuth.elaRatio !== null && clientAuth.elaRatio > 4.0) {
+          const elaExists = res.tool_results.some(
+            (tr) => tr.target === "compression_ela"
+          );
+          if (!elaExists) {
+            res.tool_results.push({
+              tool: "payment_authenticity",
+              target: "compression_ela",
+              status: "warn",
+              detail: `Pixel-level Error Level Analysis detects localized compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
+                1
+              )} > 4.0). Editing or digital tampering suspected.`,
+            });
+            res.extracted.visual_notes.push(
+              `Pixel-level ELA compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
+                1
+              )} > 4.0) indicates localized editing`
+            );
+          }
+        }
+      }
 
       setResult(res);
     } catch (err: unknown) {

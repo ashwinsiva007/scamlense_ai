@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parsePaymentFields } from "@/lib/paymentScreenshot";
 import paymentEn from "../../../../public/demo/sample_payment_en.json";
 import paymentTa from "../../../../public/demo/sample_payment_ta.json";
 import paymentHi from "../../../../public/demo/sample_payment_hi.json";
@@ -228,6 +229,75 @@ Return ONLY valid JSON matching this schema:
 }`;
 
     const geminiResult = await callGeminiCloud(apiKey, parts, systemInstruction);
+
+    // Background payment screenshot entity & authenticity enrichment
+    const combinedText = `${text} ${
+      typeof geminiResult.extracted === "object" && geminiResult.extracted !== null
+        ? (geminiResult.extracted as Record<string, unknown>).message_text || ""
+        : ""
+    }`;
+    const paymentData = parsePaymentFields(combinedText);
+
+    if (geminiResult.extracted && typeof geminiResult.extracted === "object") {
+      const ext = geminiResult.extracted as Record<string, unknown>;
+      const amounts: string[] = Array.isArray(ext.amounts) ? [...(ext.amounts as string[])] : [];
+      const upiIds: string[] = Array.isArray(ext.upi_ids) ? [...(ext.upi_ids as string[])] : [];
+      const phones: string[] = Array.isArray(ext.phone_numbers) ? [...(ext.phone_numbers as string[])] : [];
+      const visualNotes: string[] = Array.isArray(ext.visual_notes) ? [...(ext.visual_notes as string[])] : [];
+
+      if (
+        paymentData.amount &&
+        !amounts.includes(`₹${paymentData.amount}`) &&
+        !amounts.includes(paymentData.amount)
+      ) {
+        amounts.push(paymentData.currency === "INR" ? `₹${paymentData.amount}` : paymentData.amount);
+      }
+      for (const u of paymentData.upi_ids) {
+        if (!upiIds.includes(u)) upiIds.push(u);
+      }
+      if (paymentData.phone && !phones.includes(paymentData.phone)) {
+        phones.push(paymentData.phone);
+      }
+      if (paymentData.bank && !ext.claimed_brand) {
+        ext.claimed_brand = paymentData.bank;
+      }
+      if (paymentData.payment_app && !ext.claimed_brand) {
+        ext.claimed_brand = paymentData.payment_app;
+      }
+
+      ext.amounts = amounts;
+      ext.upi_ids = upiIds;
+      ext.phone_numbers = phones;
+      ext.visual_notes = visualNotes;
+    }
+
+    if (!Array.isArray(geminiResult.tool_results)) {
+      geminiResult.tool_results = [];
+    }
+
+    if (paymentData.transaction_id) {
+      const is12Digit = /^\d{12}$/.test(paymentData.transaction_id);
+      (geminiResult.tool_results as Array<Record<string, unknown>>).push({
+        tool: "payment_fields",
+        target: paymentData.transaction_id,
+        status: is12Digit || paymentData.transaction_id.startsWith("T") ? "ok" : "warn",
+        detail: is12Digit
+          ? `Valid 12-digit UPI reference format ('${paymentData.transaction_id}'). Note: ScamLens cannot confirm bank settlement.`
+          : `Transaction reference '${paymentData.transaction_id}' detected. Note: Format check only.`,
+      });
+    }
+
+    if (paymentData.status) {
+      (geminiResult.tool_results as Array<Record<string, unknown>>).push({
+        tool: "payment_fields",
+        target: "status",
+        status: paymentData.status === "Success" ? "ok" : "warn",
+        detail:
+          paymentData.status === "Success"
+            ? "Screenshot claims successful payment status. Note: Always verify in bank statement."
+            : `Screenshot shows payment status as '${paymentData.status}', not completed or credited.`,
+      });
+    }
 
     return NextResponse.json({
       ...geminiResult,

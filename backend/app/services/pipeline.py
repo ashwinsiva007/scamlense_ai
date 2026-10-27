@@ -170,7 +170,10 @@ async def run_pipeline(
     else:
         # Step 4: External Verifiers
         t_ver_start = time.perf_counter()
-        tool_results, tool_signals = await run_verifiers(extracted)
+        tool_results, tool_signals = await run_verifiers(
+            extracted,
+            image_bytes=processed_image_bytes or image_bytes,
+        )
         timings["verifiers"] = max(1, int((time.perf_counter() - t_ver_start) * 1000))
 
         # Step 5: Deterministic Rule Engine Scoring

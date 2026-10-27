@@ -8,6 +8,7 @@ URL unshortening, and UPI/phone formatting checks.
 
 import asyncio
 from datetime import datetime, timezone
+import io
 import ipaddress
 import logging
 import os
@@ -19,6 +20,13 @@ import urllib.parse
 
 import httpx
 import yaml
+
+try:
+    import numpy as np
+    from PIL import Image, ImageChops
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 from app.config import settings
 from app.schemas import ExtractedData, Signal, ToolResult
@@ -841,15 +849,271 @@ def check_upi_format(upi_ids: List[str]) -> Tuple[List[ToolResult], List[Signal]
     return results, signals
 
 
+_EDITORS = [
+    "photoshop", "gimp", "canva", "snapseed", "picsart", "pixlr",
+    "photopea", "lightroom", "paint.net", "fotor", "inkscape",
+    "affinity", "figma", "photoroom", "remini",
+]
+
+_PAYMENT_APPS = {
+    "Google Pay": ["google pay", "gpay", "g pay"],
+    "PhonePe": ["phonepe", "phone pe"],
+    "Paytm": ["paytm"],
+    "BHIM": ["bhim"],
+    "Amazon Pay": ["amazon pay"],
+    "CRED": ["cred"],
+    "WhatsApp Pay": ["whatsapp"],
+}
+
+_INDIAN_BANKS_REGEX = re.compile(
+    r"\b((?:State Bank of India|SBI|HDFC|ICICI|Axis|Kotak|Canara|Union|Punjab National|PNB|Bank of Baroda|BOB|IDFC|Yes|IndusInd|Federal|Indian|Central|UCO)(?:\s+Bank)?)(?:\s*[-–]?\s*(?:[Xx*•]{2,}\s*)?(\d{4}))?",
+    re.IGNORECASE,
+)
+
+
+def check_image_authenticity(image_bytes: Optional[bytes]) -> Tuple[List[ToolResult], List[Signal], List[str]]:
+    """
+    Performs background image tampering checks on screenshot bytes:
+    1. Detects editing software traces (Photoshop, Canva, PicsArt, etc.) in file metadata/headers.
+    2. Inspects resolution and mobile aspect ratio for severe cropping or alteration.
+    3. Executes in-memory Error Level Analysis (ELA) to detect localized compression inconsistencies.
+    """
+    results: List[ToolResult] = []
+    signals: List[Signal] = []
+    visual_notes: List[str] = []
+
+    if not image_bytes or len(image_bytes) < 32:
+        return results, signals, visual_notes
+
+    # 1. Photo editor traces in raw byte headers / metadata
+    try:
+        raw_header = image_bytes[:65536].decode("latin1", errors="ignore").lower()
+        found_editors = [ed for ed in _EDITORS if ed in raw_header]
+        if found_editors:
+            ed_name = found_editors[0].capitalize()
+            signals.append(
+                Signal(
+                    id="PAY_EDITED_CROPPED_IMAGE",
+                    label="Edited Fields or Cropped Status Bar",
+                    category="payment_screenshot",
+                    weight=15.0,
+                    evidence=f"File metadata mentions editing software ('{ed_name}')",
+                    source="tool",
+                )
+            )
+            results.append(
+                ToolResult(
+                    tool="payment_authenticity",
+                    target="metadata",
+                    status="warn",
+                    detail=f"File metadata mentions photo editing software ('{ed_name}'). Tampering suspected.",
+                )
+            )
+            visual_notes.append(f"Photo-editing software metadata detected: {ed_name}")
+        else:
+            results.append(
+                ToolResult(
+                    tool="payment_authenticity",
+                    target="metadata",
+                    status="ok",
+                    detail="No photo-editor traces found in file metadata.",
+                )
+            )
+    except Exception:
+        pass
+
+    # 2. Dimensions, aspect ratio, and ELA
+    if PIL_AVAILABLE:
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            w, h = img.size
+            ar = h / float(w if w > 0 else 1)
+
+            if w < 500:
+                results.append(
+                    ToolResult(
+                        tool="payment_authenticity",
+                        target="resolution",
+                        status="warn",
+                        detail=f"Very low resolution ({w}x{h}); small text may have been altered or re-compressed.",
+                    )
+                )
+                visual_notes.append(f"Low resolution ({w}x{h}); potential text alteration")
+            elif ar < 1.6 or ar > 2.6:
+                results.append(
+                    ToolResult(
+                        tool="payment_authenticity",
+                        target="aspect_ratio",
+                        status="warn",
+                        detail=f"Unusual shape/aspect ratio ({ar:.2f}) for phone screenshot; it may have been cropped.",
+                    )
+                )
+                visual_notes.append(f"Unusual aspect ratio ({ar:.2f}); cropped status bar or boundaries")
+            else:
+                results.append(
+                    ToolResult(
+                        tool="payment_authenticity",
+                        target="dimensions",
+                        status="ok",
+                        detail=f"Normal mobile screenshot resolution and aspect ratio ({w}x{h}).",
+                    )
+                )
+
+            # 3. Pixel-Level Error Level Analysis (ELA)
+            try:
+                rgb_img = img.convert("RGB")
+                if w > 1000:
+                    nh = int(h * 1000 / w)
+                    rgb_img = rgb_img.resize((1000, nh), Image.Resampling.BILINEAR)
+
+                buf = io.BytesIO()
+                rgb_img.save(buf, "JPEG", quality=90)
+                buf.seek(0)
+                resaved = Image.open(buf)
+                diff = ImageChops.difference(rgb_img, resaved)
+
+                diff_arr = np.array(diff, dtype=np.float32).mean(axis=2)
+                dh, dw = diff_arr.shape
+                bh, bw = dh // 16, dw // 16
+                if bh > 0 and bw > 0:
+                    blocks = diff_arr[:bh * 16, :bw * 16].reshape(bh, 16, bw, 16).mean(axis=(1, 3))
+                    valid = blocks[blocks > 0.3]
+                    if len(valid) > 20:
+                        med = float(np.median(valid))
+                        p98 = float(np.percentile(valid, 98))
+                        ratio = p98 / med if med > 0 else 1.0
+                        if ratio > 4.0:
+                            signals.append(
+                                Signal(
+                                    id="PAY_EDITED_CROPPED_IMAGE",
+                                    label="Edited Fields or Cropped Status Bar",
+                                    category="payment_screenshot",
+                                    weight=15.0,
+                                    evidence=f"Compression pattern anomaly (ELA ratio {ratio:.1f} > 4.0)",
+                                    source="tool",
+                                )
+                            )
+                            results.append(
+                                ToolResult(
+                                    tool="payment_authenticity",
+                                    target="compression_ela",
+                                    status="warn",
+                                    detail=f"Error Level Analysis detects localized compression variance (ratio {ratio:.1f} > 4.0). Digit or text tampering suspected.",
+                                )
+                            )
+                            visual_notes.append(f"Pixel-level ELA compression anomaly (ratio {ratio:.1f} > 4.0) indicates localized editing")
+                        else:
+                            results.append(
+                                ToolResult(
+                                    tool="payment_authenticity",
+                                    target="compression_ela",
+                                    status="ok",
+                                    detail="Uniform image compression pattern across screenshot.",
+                                )
+                            )
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    return results, signals, visual_notes
+
+
 def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolResult], List[Signal]]:
     """
-    Inspects transaction text for invalid 12-digit UPI UTRs, impossible future dates, or edited visual notes.
-    States clearly what it can and cannot verify: verifies format only, never claims to confirm a payment actually happened.
+    Inspects transaction text for invalid 12-digit UPI UTRs, impossible future dates,
+    payment statuses, banking institutions, and visual tampering indicators.
+    States clearly what it can and cannot verify: verifies format only, never claims to confirm payment settlement.
     """
     results: List[ToolResult] = []
     signals: List[Signal] = []
 
-    # 1. UPI UTR check (NPCI strictly mandates 12 digits)
+    tl = text.lower()
+
+    # 1. Detect recognized Payment App
+    detected_app = None
+    for app_name, keywords in _PAYMENT_APPS.items():
+        if any(kw in tl for kw in keywords):
+            detected_app = app_name
+            results.append(
+                ToolResult(
+                    tool="payment_fields",
+                    target="payment_app",
+                    status="ok",
+                    detail=f"Identified payment application interface: {app_name}.",
+                )
+            )
+            break
+
+    # 2. Detect Bank
+    bank_match = _INDIAN_BANKS_REGEX.search(text)
+    if bank_match:
+        bank_name = bank_match.group(0).strip()
+        results.append(
+            ToolResult(
+                tool="payment_fields",
+                target="bank",
+                status="ok",
+                detail=f"Identified banking institution: {bank_name}.",
+            )
+        )
+
+    # 3. Detect Payment Status
+    status_fail = re.search(r"\b(failed|declined|unsuccessful|rejected)\b", tl)
+    status_pending = re.search(r"\b(pending|processing|in\s*progress)\b", tl)
+    status_success = re.search(r"\b(successful|completed|paid|sent|received)\b", tl)
+
+    if status_fail:
+        matched_word = status_fail.group(1).capitalize()
+        signals.append(
+            Signal(
+                id="PAY_PENDING_STATUS_AS_PAID",
+                label="Pending or Processing Payment Claimed as Completed",
+                category="payment_screenshot",
+                weight=20.0,
+                evidence=f"Transaction screenshot status is {matched_word}",
+                source="tool",
+            )
+        )
+        results.append(
+            ToolResult(
+                tool="payment_fields",
+                target="status",
+                status="warn",
+                detail=f"Screenshot shows payment status as '{matched_word}', confirming funds were not credited.",
+            )
+        )
+    elif status_pending:
+        matched_word = status_pending.group(1).capitalize()
+        signals.append(
+            Signal(
+                id="PAY_PENDING_STATUS_AS_PAID",
+                label="Pending or Processing Payment Claimed as Completed",
+                category="payment_screenshot",
+                weight=20.0,
+                evidence=f"Transaction screenshot status is {matched_word}",
+                source="tool",
+            )
+        )
+        results.append(
+            ToolResult(
+                tool="payment_fields",
+                target="status",
+                status="warn",
+                detail=f"Screenshot shows payment status as '{matched_word}'. Never release goods for pending transactions.",
+            )
+        )
+    elif status_success:
+        results.append(
+            ToolResult(
+                tool="payment_fields",
+                target="status",
+                status="ok",
+                detail="Screenshot claims successful payment status. Note: Always verify in bank statement.",
+            )
+        )
+
+    # 4. UPI UTR / Reference check (NPCI strictly mandates 12 digits)
     utr_match = re.search(r"(?i)(?:utr|upi\s+ref|rrn)\s*[:#\-]?\s*([a-zA-Z0-9]+)", text)
     if utr_match:
         utr_val = utr_match.group(1).strip()
@@ -878,11 +1142,53 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
                     tool="payment_fields",
                     target=utr_val,
                     status="ok",
-                    detail=f"Valid 12-digit UPI reference format. Note: Format check only; ScamLens cannot confirm if funds actually reached your bank account.",
+                    detail=f"Valid 12-digit UPI reference format ('{utr_val}'). Note: Format check only; ScamLens cannot confirm if funds reached your account.",
                 )
             )
+    else:
+        # Fallback general transaction ID regexes
+        general_tid = re.search(r"(?i)(?:transaction|txn)\s*(?:id|no\.?|number)?\s*[:\-]?\s*([a-zA-Z0-9]{6,})", text)
+        if general_tid:
+            gtid = general_tid.group(1).strip()
+            if detected_app and gtid.isdigit() and len(gtid) != 12:
+                signals.append(
+                    Signal(
+                        id="PAY_INVALID_UPI_UTR",
+                        label="Invalid UPI Reference Number (UTR)",
+                        category="payment_screenshot",
+                        weight=15.0,
+                        evidence=f"UPI reference ID '{gtid}' has {len(gtid)} digits instead of 12",
+                        source="tool",
+                    )
+                )
+                results.append(
+                    ToolResult(
+                        tool="payment_fields",
+                        target=gtid,
+                        status="warn",
+                        detail=f"UPI transaction ID '{gtid}' is {len(gtid)} digits; standard Indian UPI reference numbers are strictly 12 digits.",
+                    )
+                )
+            elif not gtid.startswith("T") and len(gtid) < 8:
+                results.append(
+                    ToolResult(
+                        tool="payment_fields",
+                        target=gtid,
+                        status="warn",
+                        detail=f"Transaction ID '{gtid}' is unusually short.",
+                    )
+                )
+            else:
+                results.append(
+                    ToolResult(
+                        tool="payment_fields",
+                        target=gtid,
+                        status="ok",
+                        detail=f"Valid transaction reference format ('{gtid}').",
+                    )
+                )
 
-    # 2. Check for impossible or future dates in text
+    # 5. Check for impossible or future dates in text
     date_patterns = [
         r"\b(20[2-9]\d)[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])\b",  # YYYY-MM-DD
         r"\b(0[1-9]|[12]\d|3[01])[-/](0[1-9]|1[0-2])[-/](20[2-9]\d)\b",  # DD-MM-YYYY
@@ -897,7 +1203,6 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
                 else:
                     day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
                 txn_date = datetime(year, month, day, tzinfo=timezone.utc)
-                # If transaction date is in the future by more than 1 day
                 if (txn_date - current_utc).total_seconds() > 86400:
                     signals.append(
                         Signal(
@@ -921,10 +1226,10 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
             except Exception:
                 pass
 
-    # 3. Visual notes inspection for cropped status bar or edited amounts
+    # 6. Visual notes inspection for cropped status bar, edited amounts, or ELA anomalies
     for note in visual_notes:
         note_lower = note.lower()
-        if any(term in note_lower for term in ("cropped status bar", "edited amount", "tampered", "spoof generator")):
+        if any(term in note_lower for term in ("cropped status bar", "edited amount", "tampered", "spoof generator", "ela compression")):
             signals.append(
                 Signal(
                     id="PAY_EDITED_CROPPED_IMAGE",
@@ -950,7 +1255,10 @@ def check_payment_fields(text: str, visual_notes: List[str]) -> Tuple[List[ToolR
 # ------------------------------------------------------------------------------
 # Orchestrator
 # ------------------------------------------------------------------------------
-async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], List[Signal]]:
+async def run_verifiers(
+    extracted: ExtractedData,
+    image_bytes: Optional[bytes] = None,
+) -> Tuple[List[ToolResult], List[Signal]]:
     """
     Orchestrates all external verification checks concurrently.
     Guarantees completion within 4s per check and never crashes.
@@ -960,7 +1268,7 @@ async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], Lis
 
     async def safe_run(coro) -> Tuple[List[ToolResult], List[Signal]]:
         try:
-            return await asyncio.wait_for(coro, timeout=4.0)
+            return await asyncio.wait_for(coro, timeout=6.0)
         except asyncio.TimeoutError:
             return [ToolResult(tool="verifier", target="timeout", status="skipped", detail="Verifier operation timed out")], []
         except Exception as e:
@@ -971,36 +1279,63 @@ async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], Lis
     # 1. URL Unshorten, Threat intelligence & Lookalike checks
     for url in extracted.urls:
         async def process_url(u: str):
-            expanded_url, r_unshort, s_unshort = await unshorten_url(u)
-            r_all = list(r_unshort)
-            s_all = list(s_unshort)
+            r_all: List[ToolResult] = []
+            s_all: List[Signal] = []
 
             parsed_orig = urllib.parse.urlparse(u)
             domain_orig = parsed_orig.hostname or ""
 
+            domains_checked = set()
+            if domain_orig:
+                domains_checked.add(domain_orig)
+                try:
+                    r_look, s_look = await check_lookalike_domain(domain_orig)
+                    r_all.extend(r_look)
+                    s_all.extend(s_look)
+                except Exception:
+                    pass
+
+            expanded_url = u
+            try:
+                expanded_url, r_unshort, s_unshort = await unshorten_url(u)
+                r_all.extend(r_unshort)
+                s_all.extend(s_unshort)
+            except Exception:
+                pass
+
             parsed = urllib.parse.urlparse(expanded_url)
             domain = parsed.hostname or ""
 
-            domains_checked = set()
-            for d in [domain_orig, domain]:
-                if d and d not in domains_checked:
-                    domains_checked.add(d)
-                    r_look, s_look = await check_lookalike_domain(d)
+            if domain and domain not in domains_checked:
+                domains_checked.add(domain)
+                try:
+                    r_look, s_look = await check_lookalike_domain(domain)
                     r_all.extend(r_look)
                     s_all.extend(s_look)
+                except Exception:
+                    pass
 
             if domain:
-                r_age, s_age = await check_domain_age(domain)
-                r_all.extend(r_age)
-                s_all.extend(s_age)
+                try:
+                    r_age, s_age = await check_domain_age(domain)
+                    r_all.extend(r_age)
+                    s_all.extend(s_age)
+                except Exception:
+                    pass
 
-            r_gsb, s_gsb = await check_safe_browsing(expanded_url)
-            r_all.extend(r_gsb)
-            s_all.extend(s_gsb)
+            try:
+                r_gsb, s_gsb = await check_safe_browsing(expanded_url)
+                r_all.extend(r_gsb)
+                s_all.extend(s_gsb)
+            except Exception:
+                pass
 
-            r_urlh, s_urlh = await check_urlhaus(expanded_url)
-            r_all.extend(r_urlh)
-            s_all.extend(s_urlh)
+            try:
+                r_urlh, s_urlh = await check_urlhaus(expanded_url)
+                r_all.extend(r_urlh)
+                s_all.extend(s_urlh)
+            except Exception:
+                pass
 
             return r_all, s_all
 
@@ -1015,7 +1350,16 @@ async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], Lis
                 tool_results.extend(r_list)
                 tool_signals.extend(s_list)
 
-    # 2. Synchronous entity validation
+    # 2. Image Authenticity & ELA background analysis (if screenshot bytes available)
+    if image_bytes:
+        r_auth, s_auth, v_notes = check_image_authenticity(image_bytes)
+        tool_results.extend(r_auth)
+        tool_signals.extend(s_auth)
+        for vn in v_notes:
+            if vn not in extracted.visual_notes:
+                extracted.visual_notes.append(vn)
+
+    # 3. Synchronous entity validation
     r_mail, s_mail = check_free_webmail(extracted.sender, extracted.message_text, extracted.claimed_brand)
     tool_results.extend(r_mail)
     tool_signals.extend(s_mail)
@@ -1035,7 +1379,7 @@ async def run_verifiers(extracted: ExtractedData) -> Tuple[List[ToolResult], Lis
     return tool_results, tool_signals
 
 
-async def hook_verifiers(extracted: ExtractedData) -> List[ToolResult]:
+async def hook_verifiers(extracted: ExtractedData, image_bytes: Optional[bytes] = None) -> List[ToolResult]:
     """Compatibility wrapper returning List[ToolResult]"""
-    results, _ = await run_verifiers(extracted)
+    results, _ = await run_verifiers(extracted, image_bytes=image_bytes)
     return results
