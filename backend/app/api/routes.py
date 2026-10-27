@@ -1,8 +1,9 @@
 import json
 import os
-from typing import Optional
+from typing import Any, Optional
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
-from app.config import settings
+from fastapi.responses import JSONResponse
+from app.config import settings, SERVER_STARTED_AT
 from app.schemas import AnalyzeResponse, BenchmarksResponse, HealthResponse, LanguageType, ModeType
 from app.api.limiter import get_client_ip, limiter
 from app.services.file_utils import FileValidationError
@@ -19,7 +20,6 @@ from app.services.model_client import (
     is_cloud_key_configured,
 )
 from app.services.pipeline import run_pipeline
-from app.services.mock_data import get_mock_response
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,11 +27,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ScamLens API"])
 
 
+import time
+
+_live_cache = {
+    "timestamp": 0.0,
+    "live_ok": False,
+}
+
+
+async def _check_live_model_health(active_model: str) -> bool:
+    now = time.time()
+    if now - _live_cache["timestamp"] < 60.0:
+        return _live_cache["live_ok"]
+
+    if settings.MODE != "cloud" or not is_cloud_key_configured():
+        _live_cache["timestamp"] = now
+        _live_cache["live_ok"] = False
+        return False
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        import asyncio
+        loop = asyncio.get_running_loop()
+
+        def _call_probe():
+            res = client.models.generate_content(
+                model=active_model,
+                contents="OK",
+            )
+            return bool(res and res.text)
+
+        ok = await loop.run_in_executor(None, _call_probe)
+        _live_cache["live_ok"] = ok
+    except Exception as e:
+        logger.warning(f"Live model probe check failed: {e}")
+        _live_cache["live_ok"] = False
+
+    _live_cache["timestamp"] = now
+    return _live_cache["live_ok"]
+
+
 @router.get("/health", response_model=HealthResponse)
 async def get_health() -> HealthResponse:
     """
     Returns system status, operating mode, model identifier,
-    Ollama connectivity status, key configuration status, key length, and SDK version.
+    Ollama connectivity status, key configuration status, key length, SDK version,
+    env file path loaded, process ID, startup timestamp, and live_ok cached probe.
     Never returns the API key value.
     """
     ollama_ok = await check_ollama_health(settings.OLLAMA_BASE_URL)
@@ -45,17 +87,23 @@ async def get_health() -> HealthResponse:
         sdk_ver = "not_installed"
 
     active_model = settings.GEMMA_MODEL if settings.MODE == "cloud" else settings.OLLAMA_MODEL
+    live_ok = await _check_live_model_health(active_model)
 
     return HealthResponse(
         status="ok",
         mode=settings.MODE,
         model=active_model,
         model_name=active_model,
+        env_file_loaded=settings.ENV_FILE_LOADED,
+        env_file_path_loaded=settings.ENV_FILE_LOADED,
         key_configured=cloud_key_ok,
         key_length=key_len,
         sdk_version=sdk_ver,
+        process_id=os.getpid(),
+        started_at=SERVER_STARTED_AT,
         ollama_reachable=ollama_ok,
         cloud_key_set=cloud_key_ok,
+        live_ok=live_ok,
     )
 
 
@@ -67,7 +115,7 @@ async def analyze_input(
     text: Optional[str] = Form(None, description="Optional raw text or message content"),
     language: LanguageType = Form("en", description="Target language: en, ta, or hi"),
     mode: Optional[ModeType] = Form(None, description="Execution mode: cloud, local, or mock"),
-) -> AnalyzeResponse:
+) -> Any:
     """
     Analyzes an uploaded screenshot, document, and/or raw text message for indicators of scam and fraud.
     Stateless processing guarantee: uploads are held purely in memory and never written to disk.
@@ -104,7 +152,7 @@ async def analyze_input(
                 detail=f"Uploaded file ({len(file_bytes)/(1024*1024):.1f} MB) exceeds maximum allowed limit of {settings.MAX_UPLOAD_MB} MB.",
             )
 
-    # 4. Execute pipeline with typed error handling
+    # 4. Execute pipeline with typed error handling and machine-readable error codes
     try:
         result = await run_pipeline(
             image_bytes=file_bytes,
@@ -126,25 +174,61 @@ async def analyze_input(
             detail=err_msg,
         ) from fve
     except ModelAuthError as mae:
-        raise HTTPException(
+        err_text = str(mae)
+        is_rejected = any(x in err_text.lower() for x in ["rejected", "invalid", "401", "403", "revoked", "permission_denied"])
+        err_code = "KEY_REJECTED" if is_rejected else "KEY_MISSING"
+        detail_msg = f"Model authentication failed: {err_text}"
+        return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Model authentication failed: {mae}",
-        ) from mae
-    except (ModelRateLimitError, ModelUnavailableError, ModelTimeoutError, ModelNetworkError, ModelNotFoundError, ModelClientError) as m_err:
-        logger.warning(f"Remote model error ({m_err}). Falling back to instant offline verification engine.")
-        mock_res = get_mock_response(text=text, filename=filename, language=language, mode="cloud")
-        mock_res.limitations = "⚡ High-speed local engine verification (Cloud model quota limit reached). All 46 deterministic fraud rules were applied."
-        return mock_res
-    except ModelUnavailableError as mue:
-        raise HTTPException(
+            content={"detail": detail_msg, "error_code": err_code, "message": err_text},
+        )
+    except ModelNotFoundError as mnfe:
+        err_text = str(mnfe)
+        detail_msg = f"Model not found: {err_text}"
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": detail_msg, "error_code": "MODEL_NOT_FOUND", "message": err_text},
+        )
+    except ModelRateLimitError as mrle:
+        err_text = str(mrle)
+        detail_msg = f"Remote model quota exceeded: {err_text}"
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": detail_msg, "error_code": "RATE_LIMIT_EXCEEDED", "message": err_text},
+        )
+    except ModelNetworkError as mne:
+        err_text = str(mne)
+        detail_msg = f"Model network error: {err_text}"
+        return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Model service currently unavailable: {mue}",
-        ) from mue
+            content={"detail": detail_msg, "error_code": "NETWORK_ERROR", "message": err_text},
+        )
+    except ModelTimeoutError as mte:
+        err_text = str(mte)
+        detail_msg = f"Model inference timed out: {err_text}"
+        return JSONResponse(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            content={"detail": detail_msg, "error_code": "TIMEOUT_ERROR", "message": err_text},
+        )
+    except ModelUnavailableError as mue:
+        err_text = str(mue)
+        is_ollama = "ollama" in err_text.lower()
+        err_code = "OLLAMA_UNAVAILABLE" if is_ollama else "SERVICE_UNAVAILABLE"
+        if is_ollama:
+            detail_msg = f"Cannot connect to local Ollama daemon at {settings.OLLAMA_BASE_URL}. Ensure Ollama daemon is running, or switch to Cloud mode for live Gemini analysis."
+        else:
+            detail_msg = f"Model service currently unavailable: {err_text}"
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": detail_msg, "error_code": err_code, "message": detail_msg},
+        )
     except ModelClientError as mce:
-        raise HTTPException(
+        err_text = str(mce)
+        detail_msg = f"Model inference error: {err_text}"
+        return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Model inference error: {mce}",
-        ) from mce
+            content={"detail": detail_msg, "error_code": "MODEL_ERROR", "message": err_text},
+        )
 
 
 @router.get("/benchmarks", response_model=BenchmarksResponse)

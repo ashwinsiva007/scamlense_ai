@@ -28,9 +28,10 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
+import { Greeting } from "@/components/Greeting";
 import { useToast } from "@/components/ui/Toast";
 
-type SampleKey = "internship" | "payment" | "kyc";
+type SampleKey = "internship" | "payment" | "kyc" | "bank_alert";
 
 const ALLOWED_EXTENSIONS = [
   ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".heic", ".heif",
@@ -79,9 +80,10 @@ export default function HomePage() {
   const [activeSampleKey, setActiveSampleKey] = useState<SampleKey | null>(null);
   const [inputText, setInputText] = useState("");
   const [selectedMode, setSelectedMode] = useState<"cloud" | "local">("cloud");
+  const [isOllamaAvailable, setIsOllamaAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(() => process.env.NEXT_PUBLIC_DEMO_MODE === "true");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -183,18 +185,21 @@ export default function HomePage() {
     return () => window.removeEventListener("paste", handlePaste);
   }, [result, validateAndSetFile, toast, t]);
 
-  // Check backend health on mount to detect if cloud key is configured
+  // Check backend health on mount to detect live connectivity
   useEffect(() => {
     getHealth()
       .then((health) => {
-        // If cloud key is not set in this deployment, default to demo mode so samples work instantly
-        if (!health.key_configured) {
+        setIsOllamaAvailable(Boolean(health.ollama_reachable));
+        // Clear demo mode if live connection is healthy
+        if (health.key_configured && health.live_ok) {
+          setIsDemoMode(false);
+          setError(null);
+        } else if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
           setIsDemoMode(true);
         }
       })
       .catch(() => {
-        // If backend is unreachable or local server not running, enable demo mode for offline demonstration
-        setIsDemoMode(true);
+        // Do not silently enable demo mode on network errors
       });
   }, []);
 
@@ -238,6 +243,10 @@ export default function HomePage() {
         path: "/samples/fake_kyc_otp_sms.png",
         name: "fake_kyc_otp_sms.png",
       },
+      bank_alert: {
+        path: "/samples/genuine_bank_alert.png",
+        name: "genuine_bank_alert.png",
+      },
     };
 
     const target = sampleFiles[sampleKey];
@@ -277,14 +286,30 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // If user is testing a bundled sample in demo mode or offline
-      if (isDemoMode && activeSampleKey) {
-        const demoRes = await loadDemoResult(activeSampleKey, language);
-        setResult(demoRes);
+      // Step 5 Rule: Demo mode only returns cached results for the built-in sample chips
+      if (isDemoMode) {
+        if (activeSampleKey) {
+          const demoRes = await loadDemoResult(activeSampleKey, language);
+          setResult(demoRes);
+          return;
+        } else {
+          // Rule: For user-uploaded or pasted input, demo mode must NOT return a canned verdict
+          const demoWarning = "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.";
+          setError(demoWarning);
+          toast(demoWarning, "info");
+          return;
+        }
+      }
+
+      // Guard against running local mode when Ollama is offline
+      if (selectedMode === "local" && !isOllamaAvailable) {
+        const ollamaWarning = "Cannot connect to local Ollama at http://localhost:11434. Switch to Cloud mode to analyze with your live Gemini API key.";
+        setError(ollamaWarning);
+        toast(ollamaWarning, "info");
         return;
       }
 
-      // Live call to backend
+      // Live mode call (Cloud or Local)
       const res = await analyzeMessage({
         image: selectedFile,
         text: inputText,
@@ -294,75 +319,10 @@ export default function HomePage() {
 
       setResult(res);
     } catch (err: unknown) {
-      // Seamless recovery: if user is testing a bundled sample and the cloud API key is not configured, load verified result
-      if (
-        activeSampleKey &&
-        err instanceof Error &&
-        (err.message.includes("GEMINI_API_KEY") ||
-          err.message.includes("authentication failed") ||
-          err.message.includes("Model authentication failed"))
-      ) {
-        try {
-          const demoRes = await loadDemoResult(activeSampleKey, language);
-          setResult(demoRes);
-          setIsDemoMode(true);
-          toast("Loaded verified sample analysis", "info");
-          return;
-        } catch {
-          // ignore
-        }
-      }
-
-      if (
-        err instanceof ApiRateLimitError ||
-        (err instanceof Error &&
-          (err.message.includes("quota") ||
-            err.message.includes("429") ||
-            err.message.includes("rate limit") ||
-            err.message.includes("limit exceeded")))
-      ) {
-        try {
-          const sampleKey =
-            activeSampleKey ||
-            (selectedFile?.name?.toLowerCase().includes("pay") ||
-            selectedFile?.name?.toLowerCase().includes("s1") ||
-            inputText.toLowerCase().includes("paid") ||
-            inputText.toLowerCase().includes("rupee")
-              ? "payment"
-              : inputText.toLowerCase().includes("parcel") || inputText.toLowerCase().includes("courier")
-              ? "kyc"
-              : "internship");
-          const demoRes = await loadDemoResult(sampleKey as any, language);
-          setResult(demoRes);
-          setIsDemoMode(true);
-          toast("⚡ Instant verified analysis loaded", "info");
-          return;
-        } catch {
-          // fallback to error message
-        }
-        const msg = err instanceof Error ? err.message : t("errors.rateLimit");
-        setError(msg);
-        toast(msg, "error");
-      } else if (err instanceof ApiNetworkError) {
-        setError(t("errors.networkError"));
-        toast(t("errors.networkError"), "error");
-        // Auto-suggest switching to demo mode
-        if (activeSampleKey) {
-          try {
-            const demoRes = await loadDemoResult(activeSampleKey, language);
-            setResult(demoRes);
-            setIsDemoMode(true);
-            toast("Switched to offline demo mode", "info");
-            return;
-          } catch {
-            // ignore
-          }
-        }
-      } else {
-        const msg = err instanceof Error ? err.message : t("errors.generic");
-        setError(msg);
-        toast(msg, "error");
-      }
+      // Step 5 Rule: Never fall back silently to demo or mock results after an error in cloud or local mode
+      const msg = err instanceof Error ? err.message : t("errors.generic");
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setIsLoading(false);
     }
@@ -377,6 +337,33 @@ export default function HomePage() {
     setInputText("");
     lastInputRef.current = null;
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSwitchToLive = async () => {
+    setIsLoading(true);
+    try {
+      const h = await getHealth();
+      if (h.key_configured && h.live_ok) {
+        setIsDemoMode(false);
+        setSelectedMode("cloud");
+        setError(null);
+        toast("Connected to Live Cloud API!", "success");
+      } else {
+        let reason = "Live API key is not configured in backend/.env";
+        if (h.key_configured && !h.live_ok) {
+          reason = `Gemini key is configured (${h.model}), but model probe failed. Please verify API quotas or model access.`;
+        } else if (!h.key_configured) {
+          reason = "Live API key is not configured in backend/.env";
+        }
+        toast(reason, "error");
+        setError(reason);
+      }
+    } catch {
+      toast("Backend server unreachable. Make sure backend is running on port 8000.", "error");
+      setError("Cannot connect to ScamLens API server on port 8000.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const hasValidInput = Boolean(selectedFile || filePreview || inputText.trim());
@@ -394,7 +381,8 @@ export default function HomePage() {
             <span>Demo Mode Active: Rendering verified sample intelligence offline.</span>
           </div>
           <button
-            onClick={() => setIsDemoMode(false)}
+            type="button"
+            onClick={handleSwitchToLive}
             className="text-xs font-bold underline hover:text-amber-950 ml-2"
           >
             Switch to Live API
@@ -405,6 +393,8 @@ export default function HomePage() {
       {/* Hero Header */}
       {!result && (
         <header className="text-center space-y-3.5 max-w-2xl mx-auto">
+          <Greeting />
+
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
             <Sparkles className="w-3.5 h-3.5" />
             <span>{t("hero.badge")}</span>
@@ -651,11 +641,24 @@ export default function HomePage() {
                     },
                     {
                       value: "local",
-                      label: t("form.modeLocalLabel"),
+                      label: isOllamaAvailable
+                        ? t("form.modeLocalLabel")
+                        : `${t("form.modeLocalLabel")} (Offline)`,
+                      disabled: !isOllamaAvailable,
+                      title: isOllamaAvailable
+                        ? t("form.modeLocalTooltip")
+                        : "Local Ollama daemon is offline (http://localhost:11434). Run Ollama to enable.",
                     },
                   ]}
                   value={selectedMode}
-                  onChange={(val) => setSelectedMode(val)}
+                  onChange={(val) => {
+                    if (val === "local" && !isOllamaAvailable) {
+                      toast("Local Ollama is offline. Cloud mode (Gemini) remains active.", "info");
+                      return;
+                    }
+                    setSelectedMode(val);
+                    setError(null);
+                  }}
                 />
               </div>
             </div>
@@ -704,6 +707,19 @@ export default function HomePage() {
                   <span>📱</span>
                   <span>{t("form.sampleKyc")}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleLoadSample("bank_alert")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all min-h-[44px] flex items-center gap-1.5 ${
+                    activeSampleKey === "bank_alert"
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span>🏦</span>
+                  <span>{language === "ta" ? "உண்மையான வங்கி எச்சரிக்கை" : language === "hi" ? "असली बैंक सूचना" : "Genuine Bank Alert"}</span>
+                </button>
               </div>
             </div>
 
@@ -711,37 +727,55 @@ export default function HomePage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-xl bg-danger-light border border-danger/30 p-3.5 text-xs text-danger-dark flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                className="rounded-xl bg-danger-light border border-danger/30 p-3.5 text-xs text-danger-dark flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
               >
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-danger" />
                   <span className="font-semibold">{error}</span>
                 </div>
-                {!isDemoMode && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      setIsDemoMode(true);
-                      setError(null);
-                      const sampleKey = activeSampleKey || "internship";
-                      try {
-                        setIsLoading(true);
-                        const demoRes = await loadDemoResult(sampleKey, language);
-                        setResult(demoRes);
-                        toast("Switched to offline demo mode", "info");
-                      } catch {
-                        toast("Failed to load demo result", "error");
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
-                  >
-                    {t("errors.switchToDemoBtn")}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {(selectedMode === "local" || error.toLowerCase().includes("ollama")) && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedMode("cloud");
+                        setError(null);
+                        toast("Switched to Live Cloud API (Gemini)", "success");
+                      }}
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 font-bold"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Switch to Live Cloud (Gemini)</span>
+                    </Button>
+                  )}
+                  {!isDemoMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        setIsDemoMode(true);
+                        setError(null);
+                        const sampleKey = activeSampleKey || "internship";
+                        try {
+                          setIsLoading(true);
+                          const demoRes = await loadDemoResult(sampleKey, language);
+                          setResult(demoRes);
+                          toast("Switched to offline demo mode", "info");
+                        } catch {
+                          toast("Failed to load demo result", "error");
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
+                    >
+                      {t("errors.switchToDemoBtn")}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 

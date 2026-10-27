@@ -1,0 +1,68 @@
+{
+  "request_id": "demo-sample-bank-alert-en",
+  "band": "low_risk",
+  "score": 0,
+  "confidence": "high",
+  "scam_type": null,
+  "language": "en",
+  "extracted": {
+    "document_type": "transaction_alert",
+    "sender": "HDFCBK",
+    "message_text": "Dear Customer, A/c **4589 has been debited for INR 450.00 at SWIGGY BANGALORE on 26-Oct-2026. Avl Bal: INR 18,250.00. If not done by you, forward this SMS to 9223150150 or call bank toll-free at 1800112211. - HDFC Bank",
+    "urls": [],
+    "phone_numbers": ["9223150150", "1800112211"],
+    "upi_ids": [],
+    "amounts": ["INR 450.00", "INR 18,250.00"],
+    "claimed_brand": "HDFC Bank",
+    "detected_language": "en",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "Standard bank transactional format",
+      "Masked account number (A/c **4589)",
+      "Registered SMS Sender ID (HDFCBK)",
+      "Official bank toll-free support helpline"
+    ]
+  },
+  "signals": [
+    {
+      "id": "REDUCER_STANDARD_MASKED_DEBIT_SMS",
+      "label": "Standard Bank Masked Debit / Credit Transaction Alert",
+      "category": "reducers",
+      "weight": -20.0,
+      "evidence": "A/c **4589 has been debited for INR 450.00 ... Avl Bal: INR 18,250.00",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "sms_sender_verifier",
+      "target": "HDFCBK",
+      "status": "ok",
+      "detail": "Verified TRAI / DLT registered Indian banking financial institution header."
+    }
+  ],
+  "explanation": "No major red flags found. This is a standard informative bank debit alert from registered sender ID HDFCBK. The notification contains routine transactional indicators including masked account digits (A/c **4589), the merchant name (SWIGGY), updated available balance, and official bank helpline numbers without demanding sensitive passwords or advance fees.",
+  "next_steps": [
+    "Verify this transaction inside your official bank mobile application or NetBanking account.",
+    "If you did not authorize this purchase, immediately contact your bank at 1800112211 to temporarily lock the card.",
+    "Never disclose your NetBanking password, OTP, or UPI PIN to anyone."
+  ],
+  "family_alert": {
+    "title": "ℹ️ Notice: Routine Bank Transaction Alert",
+    "body": "This message is a routine bank debit alert for a Swiggy purchase with masked account digits. No scam indicators were detected.",
+    "tips": [
+      "Banks never ask for your password, PIN, or OTP.",
+      "Check your official bank app if you do not recognize the transaction."
+    ]
+  },
+  "limitations": "ScamLens evaluated this document using verified fraud rules. The absence of red flags indicates standard transactional patterns but does not absolve personal vigilance.",
+  "mode": "cloud",
+  "timings_ms": {
+    "validation": 2,
+    "extraction": 18,
+    "verifiers": 10,
+    "rules": 4,
+    "explanation": 15,
+    "total": 49
+  }
+}

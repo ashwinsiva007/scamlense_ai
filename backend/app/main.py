@@ -12,12 +12,15 @@ logger = logging.getLogger("scamlens")
 async def lifespan(app: FastAPI):
     # Masked startup log for Gemini key (never logs the value)
     key_len = len(settings.GEMINI_API_KEY) if settings.GEMINI_API_KEY else 0
+    env_source = getattr(settings, "ENV_FILE_LOADED", "none") or "none"
     if key_len > 0:
-        logger.info(f"Gemini key: present (length {key_len})")
-        print(f"Gemini key: present (length {key_len})")
+        msg = f"Gemini key: present (length {key_len}) from {env_source}"
+        logger.info(msg)
+        print(msg)
     else:
-        logger.warning("Gemini key: MISSING")
-        print("Gemini key: MISSING")
+        msg = "Gemini key: MISSING"
+        logger.warning(msg)
+        print(msg)
     yield
 
 
