@@ -102,10 +102,41 @@ export function ResultPanel({
     }
   };
 
-  const bandConfig = getBandConfig(result.band);
+  const band = result?.band || "low_risk";
+  const bandConfig = getBandConfig(band);
 
-  // Group signals by category
-  const groupedSignals = result.signals.reduce<Record<string, typeof result.signals>>(
+  const signals = Array.isArray(result?.signals) ? result.signals : [];
+  const extracted = result?.extracted || {
+    document_type: "",
+    sender: null,
+    message_text: "",
+    urls: [],
+    phone_numbers: [],
+    upi_ids: [],
+    amounts: [],
+    claimed_brand: null,
+    detected_language: language,
+    image_quality: "good",
+    visual_notes: [],
+  };
+  const urls = Array.isArray(extracted.urls) ? extracted.urls : [];
+  const phoneNumbers = Array.isArray(extracted.phone_numbers) ? extracted.phone_numbers : [];
+  const upiIds = Array.isArray(extracted.upi_ids) ? extracted.upi_ids : [];
+  const amounts = Array.isArray(extracted.amounts) ? extracted.amounts : [];
+  const visualNotes = Array.isArray(extracted.visual_notes) ? extracted.visual_notes : [];
+  const toolResults = Array.isArray(result?.tool_results) ? result.tool_results : [];
+  const nextSteps = Array.isArray(result?.next_steps) ? result.next_steps : [];
+  const familyAlert = result?.family_alert || {
+    title: "Family Alert",
+    body: "Exercise caution before sharing personal credentials or transferring funds.",
+    tips: [],
+  };
+  const confidence = typeof result?.confidence === "string" && result.confidence ? result.confidence : "medium";
+  const explanation = result?.explanation || "";
+  const limitations = result?.limitations || "";
+
+  // Group signals by category safely
+  const groupedSignals = signals.reduce<Record<string, typeof signals>>(
     (acc, sig) => {
       acc[sig.category] = acc[sig.category] || [];
       acc[sig.category].push(sig);
@@ -114,11 +145,11 @@ export function ResultPanel({
     {}
   );
 
-  // Check if payment related
+  // Check if payment related safely
   const isPayment =
-    result.extracted.document_type === "payment_screenshot" ||
-    result.scam_type?.toLowerCase().includes("payment") ||
-    result.signals.some((s) => s.category === "payment_screenshot");
+    extracted.document_type === "payment_screenshot" ||
+    Boolean(result?.scam_type?.toLowerCase().includes("payment")) ||
+    signals.some((s) => s.category === "payment_screenshot");
 
   // Tool status helper
   const getToolStatusBadge = (status: ToolStatus) => {
@@ -171,7 +202,7 @@ export function ResultPanel({
 
         <div className="flex items-center gap-3">
           <SpeechPlayer
-            text={`${result.explanation}. ${result.family_alert.title}. ${result.family_alert.body}`}
+            text={`${explanation}. ${familyAlert.title}. ${familyAlert.body}`}
             language={language}
             onUnavailable={(msg) => toast(msg, "info")}
             labels={{
@@ -194,10 +225,10 @@ export function ResultPanel({
                 {t("results.title")}
               </span>
               <Badge variant={bandConfig.badgeVariant} size="sm" dot>
-                {t(`results.conf${result.confidence.charAt(0).toUpperCase() + result.confidence.slice(1)}`)}{" "}
+                {t(`results.conf${confidence.charAt(0).toUpperCase() + confidence.slice(1)}`)}{" "}
                 {t("results.confidenceLabel")}
               </Badge>
-              {result.scam_type && (
+              {result?.scam_type && (
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/80 border border-slate-200 text-slate-700">
                   {result.scam_type}
                 </span>
@@ -244,7 +275,7 @@ export function ResultPanel({
             </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-            {result.signals.length} {result.signals.length === 1 ? "Signal" : "Signals"}
+            {signals.length} {signals.length === 1 ? "Signal" : "Signals"}
           </span>
         </div>
 
@@ -252,7 +283,7 @@ export function ResultPanel({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Quoted Evidence List */}
           <div className="lg:col-span-7 space-y-4">
-            {result.signals.length === 0 ? (
+            {signals.length === 0 ? (
               <p className="text-xs text-slate-500 italic p-4 bg-slate-50 rounded-xl border border-slate-200">
                 {t("results.noSignals")}
               </p>
@@ -324,13 +355,13 @@ export function ResultPanel({
               </div>
             )}
 
-            {result.extracted.visual_notes && result.extracted.visual_notes.length > 0 && (
+            {visualNotes.length > 0 && (
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
                 <span className="text-[10px] font-bold uppercase text-slate-500 block">
                   Observable Visual Notes
                 </span>
                 <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside">
-                  {result.extracted.visual_notes.map((note, idx) => (
+                  {visualNotes.map((note, idx) => (
                     <li key={idx}>{note}</li>
                   ))}
                 </ul>
@@ -359,14 +390,14 @@ export function ResultPanel({
               <LinkIcon className="w-4 h-4 text-info" />
               <span>{t("results.linksCount")}</span>
               <span className="ml-auto text-[11px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                {result.extracted.urls.length}
+                {urls.length}
               </span>
             </div>
-            {result.extracted.urls.length === 0 ? (
+            {urls.length === 0 ? (
               <span className="text-xs text-slate-400 italic block">None detected</span>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {result.extracted.urls.map((url, i) => (
+                {urls.map((url, i) => (
                   <span
                     key={i}
                     className="text-xs font-mono bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-700 break-all"
@@ -384,14 +415,14 @@ export function ResultPanel({
               <Phone className="w-4 h-4 text-primary" />
               <span>{t("results.phonesCount")}</span>
               <span className="ml-auto text-[11px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                {result.extracted.phone_numbers.length}
+                {phoneNumbers.length}
               </span>
             </div>
-            {result.extracted.phone_numbers.length === 0 ? (
+            {phoneNumbers.length === 0 ? (
               <span className="text-xs text-slate-400 italic block">None detected</span>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {result.extracted.phone_numbers.map((phone, i) => (
+                {phoneNumbers.map((phone, i) => (
                   <span
                     key={i}
                     className="text-xs font-mono bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-700"
@@ -409,14 +440,14 @@ export function ResultPanel({
               <CreditCard className="w-4 h-4 text-warning" />
               <span>{t("results.upisCount")}</span>
               <span className="ml-auto text-[11px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                {result.extracted.upi_ids.length}
+                {upiIds.length}
               </span>
             </div>
-            {result.extracted.upi_ids.length === 0 ? (
+            {upiIds.length === 0 ? (
               <span className="text-xs text-slate-400 italic block">None detected</span>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {result.extracted.upi_ids.map((upi, i) => (
+                {upiIds.map((upi, i) => (
                   <span
                     key={i}
                     className="text-xs font-mono bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-700"
@@ -434,14 +465,14 @@ export function ResultPanel({
               <Banknote className="w-4 h-4 text-emerald-700" />
               <span>{t("results.amountsCount")}</span>
               <span className="ml-auto text-[11px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                {result.extracted.amounts.length}
+                {amounts.length}
               </span>
             </div>
-            {result.extracted.amounts.length === 0 ? (
+            {amounts.length === 0 ? (
               <span className="text-xs text-slate-400 italic block">None detected</span>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {result.extracted.amounts.map((amt, i) => (
+                {amounts.map((amt, i) => (
                   <span
                     key={i}
                     className="text-xs font-bold bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-900"
@@ -455,13 +486,13 @@ export function ResultPanel({
         </div>
 
         {/* Tool Results list */}
-        {result.tool_results.length > 0 && (
+        {toolResults.length > 0 && (
           <div className="space-y-2.5 pt-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
               Automated Verifier Outputs
             </span>
             <div className="space-y-2">
-              {result.tool_results.map((tr, idx) => {
+              {toolResults.map((tr, idx) => {
                 const badge = getToolStatusBadge(tr.status);
                 return (
                   <div
@@ -503,7 +534,7 @@ export function ResultPanel({
 
         {/* Next Steps Checklist */}
         <ul className="space-y-2.5 text-xs sm:text-sm text-slate-700">
-          {result.next_steps.map((step, idx) => (
+          {nextSteps.map((step, idx) => (
             <li
               key={idx}
               className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/70"
@@ -566,7 +597,7 @@ export function ResultPanel({
         </h3>
 
         <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50/80 p-4 rounded-xl border border-slate-200 font-medium">
-          {result.explanation}
+          {explanation}
         </p>
 
         {/* ALWAYS SHOW for payment screenshots */}
@@ -589,13 +620,13 @@ export function ResultPanel({
           <span className="font-bold text-slate-800 block">
             {t("results.limitationsHeader")}
           </span>
-          <p>{result.limitations}</p>
+          <p>{limitations}</p>
         </div>
       </div>
 
       {/* 6. Family Alert Card (Specially designed for WhatsApp sharing) */}
       <FamilyAlertCard
-        alert={result.family_alert}
+        alert={familyAlert}
         language={language}
         labels={{
           header: t("results.familyAlertHeader"),

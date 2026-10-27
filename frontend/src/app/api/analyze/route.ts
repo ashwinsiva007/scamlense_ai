@@ -37,10 +37,100 @@ const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> =
 };
 
 const CANDIDATE_MODELS = [
-  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-flash-latest",
   "gemini-3.1-flash-lite",
   "gemini-3.5-flash",
 ];
+
+function normalizeGeminiResponse(
+  raw: Record<string, unknown>,
+  safeLang: "en" | "ta" | "hi"
+): Record<string, unknown> {
+  const validBands = ["low_risk", "suspicious", "likely_scam", "insufficient_info"];
+  const band = typeof raw.band === "string" && validBands.includes(raw.band)
+    ? raw.band
+    : "low_risk";
+
+  const rawExtracted = (raw.extracted as Record<string, unknown>) || {};
+  const extracted = {
+    document_type: String(rawExtracted.document_type || "document"),
+    sender: rawExtracted.sender ? String(rawExtracted.sender) : null,
+    message_text: String(rawExtracted.message_text || ""),
+    urls: Array.isArray(rawExtracted.urls) ? rawExtracted.urls.map(String) : [],
+    phone_numbers: Array.isArray(rawExtracted.phone_numbers) ? rawExtracted.phone_numbers.map(String) : [],
+    upi_ids: Array.isArray(rawExtracted.upi_ids) ? rawExtracted.upi_ids.map(String) : [],
+    amounts: Array.isArray(rawExtracted.amounts) ? rawExtracted.amounts.map(String) : [],
+    claimed_brand: rawExtracted.claimed_brand ? String(rawExtracted.claimed_brand) : null,
+    detected_language: String(rawExtracted.detected_language || safeLang),
+    image_quality: String(rawExtracted.image_quality || "good"),
+    visual_notes: Array.isArray(rawExtracted.visual_notes) ? rawExtracted.visual_notes.map(String) : [],
+  };
+
+  const rawAlert = (raw.family_alert as Record<string, unknown>) || {};
+  const family_alert = {
+    title: String(rawAlert.title || (band === "likely_scam" ? "Scam Alert" : "Safety Alert")),
+    body: String(
+      rawAlert.body ||
+        "Exercise caution before sharing personal credentials, OTPs, or transferring money."
+    ),
+    tips: Array.isArray(rawAlert.tips) && rawAlert.tips.length > 0
+      ? rawAlert.tips.map(String)
+      : [
+          "Never share your banking password, OTP, or UPI PIN.",
+          "Independently verify sender contacts before sending money.",
+        ],
+  };
+
+  const rawSignals = Array.isArray(raw.signals) ? raw.signals : [];
+  const signals = rawSignals.map((s, idx) => {
+    const sig = (s as Record<string, unknown>) || {};
+    return {
+      id: String(sig.id || `SIG_${idx + 1}`),
+      label: String(sig.label || "Suspicious Indicator"),
+      category: String(sig.category || "general"),
+      weight: typeof sig.weight === "number" ? sig.weight : 20,
+      evidence: String(sig.evidence || ""),
+      source: (sig.source === "tool" || sig.source === "rule" ? sig.source : "model") as "model",
+    };
+  });
+
+  const rawNextSteps = Array.isArray(raw.next_steps) ? raw.next_steps : [];
+  const next_steps = rawNextSteps.length > 0
+    ? rawNextSteps.map(String)
+    : [
+        "Do not click on unverified links or dial unknown callback numbers.",
+        "Verify suspicious communications via official customer care portals.",
+      ];
+
+  const rawToolResults = Array.isArray(raw.tool_results) ? raw.tool_results : [];
+  const tool_results = rawToolResults.map((tr) => {
+    const item = (tr as Record<string, unknown>) || {};
+    return {
+      tool: String(item.tool || "verifier"),
+      target: String(item.target || ""),
+      status: (["ok", "warn", "error", "skipped"].includes(item.status as string)
+        ? item.status
+        : "skipped") as "ok" | "warn" | "error" | "skipped",
+      detail: String(item.detail || ""),
+    };
+  });
+
+  return {
+    band,
+    score: typeof raw.score === "number" ? Math.min(100, Math.max(0, raw.score)) : 10,
+    confidence: (["high", "medium", "low"].includes(raw.confidence as string)
+      ? raw.confidence
+      : "medium") as "high" | "medium" | "low",
+    scam_type: raw.scam_type ? String(raw.scam_type) : null,
+    explanation: String(raw.explanation || "Document evaluated with ScamLens AI vision intelligence."),
+    next_steps,
+    extracted,
+    signals,
+    tool_results,
+    family_alert,
+  };
+}
 
 async function callGeminiCloud(
   apiKey: string,
@@ -229,6 +319,7 @@ Return ONLY valid JSON matching this schema:
 }`;
 
     const geminiResult = await callGeminiCloud(apiKey, parts, systemInstruction);
+    const normalized = normalizeGeminiResponse(geminiResult, safeLang);
 
     // Background payment screenshot entity & authenticity enrichment
     const combinedText = `${text} ${
@@ -300,7 +391,7 @@ Return ONLY valid JSON matching this schema:
     }
 
     return NextResponse.json({
-      ...geminiResult,
+      ...normalized,
       request_id: `sl-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       language: safeLang,
       mode: "cloud",

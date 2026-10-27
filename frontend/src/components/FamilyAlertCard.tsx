@@ -28,7 +28,11 @@ export function FamilyAlertCard({ alert, language, labels }: FamilyAlertCardProp
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
 
-  const formattedShareText = `${alert.title}\n\n${alert.body}\n\nKey Safety Rules:\n${alert.tips
+  const title = alert?.title || "Family Fraud Safety Alert";
+  const body = alert?.body || "Exercise high caution before sharing credentials or money.";
+  const tips = Array.isArray(alert?.tips) ? alert.tips : [];
+
+  const formattedShareText = `${title}\n\n${body}\n\nKey Safety Rules:\n${tips
     .map((tip) => `• ${tip}`)
     .join("\n")}\n\n— ScamLens: Verify before you act (https://scamlens.org)`;
 
@@ -166,12 +170,12 @@ export function FamilyAlertCard({ alert, language, labels }: FamilyAlertCardProp
 
         {/* Alert Title */}
         <h4 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
-          {alert.title}
+          {title}
         </h4>
 
         {/* Alert Body */}
         <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-          {alert.body}
+          {body}
         </p>
 
         {/* Actionable Tips */}
@@ -180,7 +184,7 @@ export function FamilyAlertCard({ alert, language, labels }: FamilyAlertCardProp
             Key Precautions:
           </span>
           <ul className="space-y-1.5 text-xs sm:text-sm text-slate-800">
-            {alert.tips.map((tip, idx) => (
+            {tips.map((tip, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-warning mt-1.5 shrink-0" />
                 <span className="font-medium">{tip}</span>
