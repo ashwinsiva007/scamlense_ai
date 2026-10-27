@@ -327,7 +327,29 @@ export default function HomePage() {
       });
 
       const clientAuth = await clientAuthPromise;
-      if (clientAuth) {
+      if (clientAuth && res) {
+        if (!Array.isArray(res.tool_results)) res.tool_results = [];
+        if (!Array.isArray(res.signals)) res.signals = [];
+        if (!res.extracted || typeof res.extracted !== "object") {
+          res.extracted = {
+            document_type: "",
+            sender: null,
+            message_text: "",
+            urls: [],
+            phone_numbers: [],
+            upi_ids: [],
+            amounts: [],
+            claimed_brand: null,
+            detected_language: language,
+            image_quality: "good",
+            visual_notes: [],
+          };
+        }
+        if (!Array.isArray(res.extracted.amounts)) res.extracted.amounts = [];
+        if (!Array.isArray(res.extracted.upi_ids)) res.extracted.upi_ids = [];
+        if (!Array.isArray(res.extracted.phone_numbers)) res.extracted.phone_numbers = [];
+        if (!Array.isArray(res.extracted.visual_notes)) res.extracted.visual_notes = [];
+
         // 1. Incorporate local duplicate screenshot / transaction ID reuse warnings
         if (clientAuth.seenBefore.exactImageDate) {
           res.tool_results.unshift({

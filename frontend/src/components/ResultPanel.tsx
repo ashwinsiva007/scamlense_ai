@@ -134,6 +134,13 @@ export function ResultPanel({
   const confidence = typeof result?.confidence === "string" && result.confidence ? result.confidence : "medium";
   const explanation = result?.explanation || "";
   const limitations = result?.limitations || "";
+  const timings = result?.timings_ms || {
+    total: 0,
+    extraction: 0,
+    verifiers: 0,
+    rules: 0,
+    explanation: 0,
+  };
 
   // Group signals by category safely
   const groupedSignals = signals.reduce<Record<string, typeof signals>>(
@@ -650,7 +657,7 @@ export function ResultPanel({
             <Terminal className="w-4 h-4 text-primary" />
             <span>{t("results.technicalHeader")}</span>
             <span className="text-[10px] font-normal text-slate-400">
-              (Latency: {result.timings_ms.total || 0} ms)
+              (Latency: {timings.total || 0} ms)
             </span>
           </div>
           {showTechnical ? (
@@ -669,7 +676,7 @@ export function ResultPanel({
                   Total
                 </span>
                 <span className="text-sm font-bold text-primary-light font-mono">
-                  {result.timings_ms.total ?? 0} ms
+                  {timings.total ?? 0} ms
                 </span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-center">
@@ -677,7 +684,7 @@ export function ResultPanel({
                   Perception
                 </span>
                 <span className="text-sm font-bold text-slate-200 font-mono">
-                  {result.timings_ms.extraction ?? 0} ms
+                  {timings.extraction ?? 0} ms
                 </span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-center">
@@ -685,7 +692,7 @@ export function ResultPanel({
                   Verifiers
                 </span>
                 <span className="text-sm font-bold text-info-light font-mono">
-                  {result.timings_ms.verifiers ?? 0} ms
+                  {timings.verifiers ?? 0} ms
                 </span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-center">
@@ -693,7 +700,7 @@ export function ResultPanel({
                   Rule Engine
                 </span>
                 <span className="text-sm font-bold text-warning font-mono">
-                  {result.timings_ms.rules ?? 0} ms
+                  {timings.rules ?? 0} ms
                 </span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-center">
@@ -701,7 +708,7 @@ export function ResultPanel({
                   Explainer
                 </span>
                 <span className="text-sm font-bold text-slate-200 font-mono">
-                  {result.timings_ms.explanation ?? 0} ms
+                  {timings.explanation ?? 0} ms
                 </span>
               </div>
             </div>
