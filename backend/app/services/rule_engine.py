@@ -308,14 +308,10 @@ def evaluate_rules(
     raw_final_score = capped_rule_score + capped_model_points - reducer_total
     final_score = int(round(max(0.0, min(100.0, raw_final_score))))
 
-    # 8. Calibrate Band according to deterministic provisional thresholds:
-    # 0–24: Low risk indicators found.
-    # 25–49: Caution — some suspicious indicators.
-    # 50–74: High risk — multiple significant warning signs.
-    # 75–100: Very high risk — strong or independently confirmed evidence.
-    if final_score < 25:
+    # 8. Calibrate Band
+    if final_score < 30:
         band: BandType = "low_risk"
-    elif final_score < 50:
+    elif final_score < 60:
         band: BandType = "suspicious"
     else:
         band: BandType = "likely_scam"

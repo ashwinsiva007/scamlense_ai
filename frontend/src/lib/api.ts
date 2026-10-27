@@ -43,18 +43,6 @@ export interface FamilyAlert {
 
 export interface AnalyzeResponse {
   request_id: string;
-  status?: string;
-  category?: string | null;
-  verdict?: Band;
-  risk_score?: number;
-  risk_level?: "low" | "caution" | "high" | "very_high";
-  summary?: string;
-  visible_claims?: string[];
-  extracted_details?: Record<string, unknown>;
-  red_flags?: string[];
-  positive_signals?: string[];
-  verification_results?: Record<string, unknown>[];
-  recommended_actions?: string[];
   band: Band;
   score: number;
   confidence: Confidence;
