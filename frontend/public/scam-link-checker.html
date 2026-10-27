@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Link Check – is this website a scam?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#14211c; --muted:#56655e; --line:#d3ddd7;
+  --accent:#0f5c47; --accent-ink:#ffffff;
+  --bad:#b3261e; --bad-bg:#fbe9e7; --warn:#8a5a00; --warn-bg:#fdf1d8; --good:#1b6b3a; --good-bg:#e3f3e8;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1613; --surface:#16211c; --ink:#e8f0ec; --muted:#9bb0a6; --line:#2a3a33;
+    --accent:#58c9a0; --accent-ink:#06150f;
+    --bad:#ff8a80; --bad-bg:#3a1a17; --warn:#f2c057; --warn-bg:#352808; --good:#7fd9a0; --good-bg:#12301f;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1613; --surface:#16211c; --ink:#e8f0ec; --muted:#9bb0a6; --line:#2a3a33;
+  --accent:#58c9a0; --accent-ink:#06150f;
+  --bad:#ff8a80; --bad-bg:#3a1a17; --warn:#f2c057; --warn-bg:#352808; --good:#7fd9a0; --good-bg:#12301f;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55}
+main{max-width:720px;margin:0 auto;padding:40px 20px 64px}
+h1{font-size:clamp(2rem,6vw,3rem);line-height:1.05;margin:0 0 12px;font-weight:800;letter-spacing:-.02em}
+.lead{color:var(--muted);margin:0 0 28px;max-width:56ch}
+form{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 280px;min-width:0;padding:14px 16px;font:inherit;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+input[type=text]:focus{outline:3px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+button{font:inherit;font-weight:700;padding:14px 22px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button:focus-visible,a:focus-visible,.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.try{margin:14px 0 0;font-size:.9rem;color:var(--muted)}
+.chip{font:inherit;font-size:.85rem;font-weight:500;padding:4px 10px;margin:4px 6px 0 0;border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer}
+#result{margin-top:32px}
+.verdict{border-radius:14px;padding:22px;border:2px solid var(--line);background:var(--surface)}
+.verdict.bad{background:var(--bad-bg);border-color:var(--bad)}
+.verdict.warn{background:var(--warn-bg);border-color:var(--warn)}
+.verdict.good{background:var(--good-bg);border-color:var(--good)}
+.verdict h2{margin:0 0 4px;font-size:1.6rem;line-height:1.2}
+.verdict.bad h2{color:var(--bad)} .verdict.warn h2{color:var(--warn)} .verdict.good h2{color:var(--good)}
+.host{word-break:break-all;color:var(--muted);margin:0 0 16px;font-size:.95rem}
+.meter{height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:currentColor;transition:width .5s ease}
+.verdict.bad .meter{color:var(--bad)} .verdict.warn .meter{color:var(--warn)} .verdict.good .meter{color:var(--good)}
+.score{margin:8px 0 0;font-size:.9rem;color:var(--muted)}
+h3{margin:28px 0 10px;font-size:1.1rem}
+ul.f{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ul.f li{display:flex;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-left-width:5px;border-radius:8px}
+ul.f li.bad{border-left-color:var(--bad)} ul.f li.warn{border-left-color:var(--warn)} ul.f li.good{border-left-color:var(--good)}
+ul.f b{display:block}
+ul.f span{color:var(--muted);font-size:.92rem}
+.note{margin-top:22px;padding:14px 16px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.92rem}
+.links a{display:inline-block;margin:4px 14px 0 0;color:var(--accent);font-weight:600}
+.err{color:var(--bad);margin-top:16px;font-weight:600}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+footer strong{color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Is this website a scam?</h1>
+  <p class="lead">Paste a link before you pay, log in or share an OTP. The checker reads the address itself and flags the tricks fake shopping, bank and prize sites rely on.</p>
+
+  <form id="f" autocomplete="off">
+    <input type="text" id="u" inputmode="url" placeholder="Paste a link, e.g. https://amazon-offer-claim.xyz/login" aria-label="Website link to check">
+    <button type="submit">Check link</button>
+  </form>
+  <p class="try">Try an example:
+    <button type="button" class="chip" data-u="https://www.amazon.in">amazon.in</button>
+    <button type="button" class="chip" data-u="http://paytm-kyc-update.top/verify?acc=1">paytm-kyc-update.top</button>
+    <button type="button" class="chip" data-u="http://192.168.4.20/sbi/login.php">IP address link</button>
+  </p>
+
+  <div id="result" aria-live="polite"></div>
+
+  <footer>
+    <p><strong>What this can’t tell you.</strong> It only studies the text of the link. It doesn’t know how old the site is, who owns it or whether it has been reported. A low-risk result is not a guarantee, so for anything involving money, open the company’s app or type its address yourself.</p>
+    <p><strong>Already paid or shared details with a fake site?</strong> In India, call 1930 or report at cybercrime.gov.in as soon as possible, and tell your bank to block the transaction.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var BRANDS={
+    paypal:['paypal.com'],amazon:['amazon.com','amazon.in','amazon.co.uk','amazon.de','amazon.ca','amazon.com.au'],
+    google:['google.com','google.co.in','gmail.com'],flipkart:['flipkart.com'],paytm:['paytm.com'],phonepe:['phonepe.com'],
+    gpay:['pay.google.com'],netflix:['netflix.com'],apple:['apple.com','icloud.com'],microsoft:['microsoft.com','live.com','office.com'],
+    facebook:['facebook.com','fb.com'],instagram:['instagram.com'],whatsapp:['whatsapp.com','wa.me'],irctc:['irctc.co.in'],
+    sbi:['sbi.co.in','onlinesbi.sbi','sbicard.com'],hdfc:['hdfcbank.com','hdfc.com'],icici:['icicibank.com'],axis:['axisbank.com'],
+    kotak:['kotak.com'],binance:['binance.com'],coinbase:['coinbase.com'],ebay:['ebay.com'],dhl:['dhl.com'],fedex:['fedex.com'],
+    myntra:['myntra.com'],swiggy:['swiggy.com'],zomato:['zomato.com'],uidai:['uidai.gov.in'],incometax:['incometax.gov.in'],
+    airtel:['airtel.in'],jio:['jio.com'],bankofindia:['bankofindia.co.in']
+  };
+  var BAD_TLDS=['xyz','top','tk','ml','ga','cf','gq','click','buzz','icu','work','rest','loan','zip','mov','cfd','sbs','monster','cyou','quest','fit','cam','support','bid','win','vip','live','site','online','store','shop'];
+  var SHORT=['bit.ly','tinyurl.com','t.co','goo.gl','is.gd','cutt.ly','rb.gy','shorturl.at','ow.ly','rebrand.ly','tiny.cc','s.id','t.ly'];
+  var WORDS=['login','signin','verify','verification','secure','update','account','bonus','prize','winner','free','gift','claim','kyc','refund','lottery','giveaway','recharge','offer','earn','wallet','crypto','invest','double','reward','suspend','unlock','confirm','cashback','lucky','airdrop','password','otp'];
+  var TWO=['co.in','org.in','net.in','gov.in','nic.in','ac.in','edu.in','res.in','co.uk','org.uk','ac.uk','com.au','co.nz','com.br','co.za','co.jp','com.sg'];
+
+  function regDomain(h){
+    var p=h.split('.');
+    if(p.length<=2) return h;
+    var last2=p.slice(-2).join('.');
+    if(TWO.indexOf(last2)>-1) return p.slice(-3).join('.');
+    return last2;
+  }
+  function norm(s){return s.replace(/rn/g,'m').replace(/vv/g,'w').replace(/0/g,'o').replace(/1/g,'l').replace(/3/g,'e').replace(/5/g,'s').replace(/\$/g,'s');}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  function analyse(raw){
+    var s=raw.trim(), had=/^[a-z][a-z0-9+.-]*:\/\//i.test(s);
+    if(!had) s='https://'+s;
+    var u; try{u=new URL(s);}catch(e){return null;}
+    if(u.protocol!=='http:'&&u.protocol!=='https:') return null;
+    var host=u.hostname.toLowerCase().replace(/\.$/,''), full=(host+u.pathname+u.search).toLowerCase();
+    var F=[], score=0;
+    function add(l,t,d,p){F.push({l:l,t:t,d:d});score+=p;}
+    var reg=regDomain(host), label=reg.split('.')[0], tld=host.split('.').pop();
+
+    var trustedBrand=null;
+    Object.keys(BRANDS).forEach(function(b){ if(BRANDS[b].indexOf(reg)>-1) trustedBrand=b; });
+
+    if(u.protocol==='http:') add('bad','Not encrypted (http)','The page doesn’t use a secure connection, so anything you type can be read in transit. Real shops and banks use https.',20);
+    else add('good','Uses https','This only means the connection is encrypted. Scam sites can have it too, so it’s not proof of safety.',0);
+
+    if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||/^\[.*\]$/.test(host)||/^0x[0-9a-f]+$/.test(host)) add('bad','Address is a number, not a name','Legitimate companies almost never ask you to log in or pay at a raw IP address.',40);
+    if(host.indexOf('xn--')>-1) add('bad','Look-alike characters in the name','The domain uses special characters that can imitate letters, a common trick for copying real brands.',35);
+    if(/@/.test(s.replace(/^https?:\/\//,'').split('/')[0])) add('bad','Contains “@” before the site name','Everything before the @ is ignored by the browser, so the real destination is hidden after it.',35);
+    if(SHORT.indexOf(host)>-1) add('warn','Shortened link','You can’t see where it leads. Expand it with a link-expander before you open it.',25);
+    if(u.port&&u.port!=='80'&&u.port!=='443') add('warn','Unusual port number','Port '+u.port+' is rarely used by genuine public websites.',15);
+
+    if(trustedBrand){
+      add('good','Matches the official domain for '+trustedBrand,'The main domain is '+reg+', which is a known official address for this brand.',-30);
+      var extra=host.slice(0,host.length-reg.length-1);
+      if(extra && /(login|secure|verify|account|update)/.test(extra) && extra.split('.').length>1) add('warn','Odd sub-domain wording','Official address, but the sub-domain contains security-sounding words. Make sure you actually arrived via the brand’s own app or site.',10);
+    }else{
+      var hit=null;
+      Object.keys(BRANDS).forEach(function(b){ if(!hit&&host.indexOf(b)>-1) hit=b; });
+      if(hit) add('bad','Uses the name “'+hit+'” but isn’t their domain','The real '+hit+' site lives at '+BRANDS[hit][0]+'. This one is on '+reg+'. Fake sites often stuff a brand name into their own address.',40);
+      else{
+        var nl=norm(label);
+        Object.keys(BRANDS).forEach(function(b){ if(!hit&&nl!==label&&nl.indexOf(b)>-1) hit=b; });
+        if(hit) add('bad','Looks like a misspelt copy of “'+hit+'”','Swapped characters (like 0 for o, or rn for m) are used to imitate real brands.',40);
+      }
+    }
+
+    if(BAD_TLDS.indexOf(tld)>-1) add('warn','Ending “.'+tld+'” is common on throw-away sites','Cheap domain endings are heavily used for scams. Plenty of honest sites use them too, so weigh this with the other signs.',15);
+    var dots=host.split('.').length-1;
+    if(dots>=4) add('warn','Many sub-domains','The address has '+(dots+1)+' parts. Scammers pile on words to bury the real domain at the end.',15);
+    var hy=(host.match(/-/g)||[]).length;
+    if(hy>=3) add('warn','Lots of hyphens in the name','Names like “secure-login-bank-offer” are typical of fake sites.',15);
+    else if(hy>=1 && !trustedBrand) add('warn','Hyphenated domain','Hyphens are a mild warning sign when combined with brand or offer words.',5);
+    if((label.match(/\d/g)||[]).length>=4) add('warn','Many digits in the name','Auto-generated domains tend to contain strings of numbers.',10);
+
+    var found=WORDS.filter(function(w){return full.indexOf(w)>-1;});
+    if(found.length && !trustedBrand){
+      add(found.length>=2?'bad':'warn','Pressure or bait words: '+found.slice(0,5).join(', '),'Words about free gifts, KYC, refunds or account problems are how scam links push you to act quickly.',Math.min(30,found.length*12));
+    }
+    if(s.length>120) add('warn','Very long link','Long addresses are sometimes used to hide the real destination.',10);
+    if(/%[0-9a-f]{2}/i.test(u.pathname+u.search)&&((u.pathname+u.search).match(/%[0-9a-f]{2}/gi)||[]).length>5) add('warn','Heavy encoding in the link','Lots of encoded characters can hide what the link really does.',10);
+    if(/\.(apk|exe|scr|msi|bat|jar)(\?|$)/.test(u.pathname.toLowerCase())) add('bad','Link downloads an app or program','Never install an APK or program from a link you were sent. Use the official app store.',40);
+
+    score=Math.max(0,Math.min(100,score));
+    return {host:host,reg:reg,F:F,score:score,trusted:!!trustedBrand,url:u.href};
+  }
+
+  var out=document.getElementById('result'), inp=document.getElementById('u');
+
+  function render(r){
+    var lvl=r.score>=45?'bad':(r.score>=20?'warn':'good');
+    var title={bad:'Very likely fake or unsafe',warn:'Suspicious: be careful',good:'No obvious red flags'}[lvl];
+    var order={bad:0,warn:1,good:2};
+    var rows=r.F.slice().sort(function(a,b){return order[a.l]-order[b.l];}).map(function(x){
+      var ic={bad:'✕',warn:'!',good:'✓'}[x.l];
+      return '<li class="'+x.l+'"><div aria-hidden="true">'+ic+'</div><div><b>'+esc(x.t)+'</b><span>'+esc(x.d)+'</span></div></li>';
+    }).join('');
+    var enc=encodeURIComponent(r.url);
+    var advice=lvl==='good'
+      ?'Still, don’t enter passwords, card details or OTPs unless you reached the site from the company’s official app or by typing its address yourself.'
+      :'Don’t enter any personal details, passwords, card numbers or OTPs, and don’t pay anything. If someone sent you this link, treat the sender with suspicion too.';
+    out.innerHTML=
+      '<div class="verdict '+lvl+'"><h2>'+title+'</h2><p class="host">'+esc(r.host)+'</p>'+
+      '<div class="meter" role="img" aria-label="Risk score '+r.score+' out of 100"><i style="width:'+r.score+'%"></i></div>'+
+      '<p class="score">Risk score: '+r.score+' / 100</p></div>'+
+      '<h3>What we found</h3><ul class="f">'+rows+'</ul>'+
+      '<div class="note">'+esc(advice)+'</div>'+
+      '<h3>Get a second opinion</h3><p class="links">'+
+      '<a href="https://transparencyreport.google.com/safe-browsing/search?url='+enc+'" target="_blank" rel="noopener">Google Safe Browsing</a>'+
+      '<a href="https://www.virustotal.com/gui/home/url" target="_blank" rel="noopener">VirusTotal</a>'+
+      '<a href="https://who.is/whois/'+encodeURIComponent(r.reg)+'" target="_blank" rel="noopener">Domain age (WHOIS)</a></p>';
+  }
+
+  function run(){
+    var v=inp.value;
+    if(!v.trim()){out.innerHTML='<p class="err">Paste a link first.</p>';return;}
+    var r=analyse(v);
+    if(!r){out.innerHTML='<p class="err">That doesn’t look like a web address. Check it starts with http:// or https:// or looks like example.com.</p>';return;}
+    render(r);
+  }
+  document.getElementById('f').addEventListener('submit',function(e){e.preventDefault();run();});
+  document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){inp.value=c.getAttribute('data-u');run();});});
+})();
+</script>
+</body>
+</html>

@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import {
   Upload,
   FileText,
+  Link2,
   X,
   Sparkles,
   ArrowRight,
@@ -534,7 +536,7 @@ export default function HomePage() {
       ) : (
         <div className="glass-panel rounded-2xl shadow-xl shadow-slate-200/50 p-5 sm:p-8 space-y-6">
           <form onSubmit={handleAnalyze} className="space-y-6">
-            {/* Tabs: Screenshot vs Paste text */}
+            {/* Tabs: Screenshot vs Paste text vs Link */}
             <Tabs
               tabs={[
                 {
@@ -546,6 +548,11 @@ export default function HomePage() {
                   id: "text",
                   label: t("form.pasteTab"),
                   icon: <FileText className="w-4 h-4" />,
+                },
+                {
+                  id: "link",
+                  label: t("form.linkTab") || "Check Link",
+                  icon: <Link2 className="w-4 h-4" />,
                 },
               ]}
               activeTab={activeTab}
@@ -674,6 +681,62 @@ export default function HomePage() {
                 <p className="text-[11px] text-slate-500 text-center font-medium">
                   {t("form.pasteClipboardHint")}
                 </p>
+              </div>
+            ) : activeTab === "link" ? (
+              /* Tab 3: Check Suspicious Link */
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Paste link, e.g. http://paytm-kyc-update.top/verify?acc=1"
+                    className="w-full rounded-xl border border-slate-200 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-slate-50/70 font-mono transition-all text-slate-900 placeholder:text-slate-400"
+                    aria-label="Paste website link"
+                  />
+                  {inputText && (
+                    <button
+                      type="button"
+                      onClick={() => setInputText("")}
+                      className="absolute top-3 right-3 text-xs text-slate-400 hover:text-slate-600 bg-white/80 px-2 py-1 rounded border border-slate-200"
+                    >
+                      {t("form.clearText")}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pt-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-semibold text-slate-600">Sample links:</span>
+                    <button
+                      type="button"
+                      onClick={() => setInputText("http://paytm-kyc-update.top/verify?acc=1")}
+                      className="px-2 py-0.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-medium transition-colors"
+                    >
+                      paytm-kyc-update.top
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputText("http://192.168.4.20/sbi/login.php")}
+                      className="px-2 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[11px] font-medium transition-colors"
+                    >
+                      IP address link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputText("https://www.amazon.in")}
+                      className="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] font-medium transition-colors"
+                    >
+                      amazon.in
+                    </button>
+                  </div>
+                  <Link
+                    href="/link-checker"
+                    className="text-primary hover:underline font-semibold text-xs inline-flex items-center gap-1"
+                  >
+                    <span>Dedicated Link Tool</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
             ) : (
               /* Tab 2: Paste Text Area */

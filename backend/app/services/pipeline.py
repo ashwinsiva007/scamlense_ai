@@ -26,6 +26,7 @@ from app.services.explainer import hook_explain
 from app.services.extractor import extract_content
 from app.services.file_utils import process_uploaded_file
 from app.services.image_utils import validate_and_process_image
+from app.services.link_checker import is_likely_url, run_link_checker
 from app.services.model_client import ModelClient, get_model_client
 from app.services.rule_engine import evaluate_rules
 from app.services.verifiers import run_verifiers
@@ -142,8 +143,9 @@ async def run_pipeline(
     timings["extraction"] = max(1, int((time.perf_counter() - t_ext_start) * 1000))
 
     # Step 3: Check for Insufficient Information
-    # If extraction yielded very little text (<10 chars) or image quality is deemed low
-    is_sparse_text = len(extracted.message_text.strip()) < 10
+    # If extraction yielded very little text (<10 chars) without any links or image quality is deemed low
+    has_urls = bool(extracted.urls) or is_likely_url(extracted.message_text)
+    is_sparse_text = len(extracted.message_text.strip()) < 10 and not has_urls
     is_low_quality = extracted.image_quality == "low"
 
     if is_sparse_text or is_low_quality:
@@ -168,12 +170,15 @@ async def run_pipeline(
         )
         timings["explanation"] = max(1, int((time.perf_counter() - t_exp_start) * 1000))
     else:
-        # Step 4: External Verifiers
+        # Step 4: External Verifiers & Heuristic Link Checker
         t_ver_start = time.perf_counter()
         tool_results, tool_signals = await run_verifiers(
             extracted,
             image_bytes=processed_image_bytes or image_bytes,
         )
+        link_results, link_signals = run_link_checker(extracted)
+        tool_results.extend(link_results)
+        tool_signals.extend(link_signals)
         timings["verifiers"] = max(1, int((time.perf_counter() - t_ver_start) * 1000))
 
         # Step 5: Deterministic Rule Engine Scoring

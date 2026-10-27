@@ -28,6 +28,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { href: "/", label: t("nav.home") },
+    { href: "/link-checker", label: t("nav.linkChecker") || "Link Checker" },
     { href: "/how-it-works", label: t("nav.howItWorks") },
     { href: "/benchmarks", label: t("nav.benchmarks") },
     { href: "/privacy", label: t("nav.privacy") },

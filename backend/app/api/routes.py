@@ -3,11 +3,13 @@ import os
 from typing import Any, Optional
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from app.config import settings, SERVER_STARTED_AT
 from app.schemas import AnalyzeResponse, BenchmarksResponse, HealthResponse, LanguageType, ModeType
 from app.api.limiter import get_client_ip, limiter
 from app.services.file_utils import FileValidationError
 from app.services.image_utils import ImageValidationError
+from app.services.link_checker import analyze_link
 from app.services.model_client import (
     ModelAuthError,
     ModelClientError,
@@ -274,3 +276,37 @@ async def get_benchmarks() -> BenchmarksResponse:
         rule_packs_loaded=10,
         last_updated="2026-10-26T00:00:00Z",
     )
+
+
+class LinkCheckRequest(BaseModel):
+    url: str
+
+
+@router.post("/check-link")
+async def check_link_post(payload: LinkCheckRequest):
+    """
+    Evaluates a URL using heuristic link checker rules (from scam-link-checker.html).
+    Returns risk score, level, findings, advice, and external verification links.
+    """
+    res = analyze_link(payload.url)
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="That doesn't look like a valid web address. Ensure it starts with http://, https://, or a valid domain.",
+        )
+    return res
+
+
+@router.get("/check-link")
+async def check_link_get(url: str):
+    """
+    GET convenience endpoint to check a link via query param.
+    """
+    res = analyze_link(url)
+    if not res:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="That doesn't look like a valid web address. Ensure it starts with http://, https://, or a valid domain.",
+        )
+    return res
+

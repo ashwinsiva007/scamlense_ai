@@ -76,6 +76,11 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs font-medium">
               <li>
+                <Link href="/link-checker" className="hover:text-primary transition-colors">
+                  {t("nav.linkChecker") || "Link Checker"}
+                </Link>
+              </li>
+              <li>
                 <Link href="/how-it-works" className="hover:text-primary transition-colors">
                   {t("nav.howItWorks")}
                 </Link>

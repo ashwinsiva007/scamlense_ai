@@ -258,3 +258,45 @@ export async function getBenchmarks(): Promise<BenchmarksResponse> {
   }
   return (await response.json()) as BenchmarksResponse;
 }
+
+export interface LinkFinding {
+  level: "bad" | "warn" | "good";
+  title: string;
+  description: string;
+  points: number;
+}
+
+export interface LinkCheckResponse {
+  url: string;
+  host: string;
+  reg_domain: string;
+  score: number;
+  level: "bad" | "warn" | "good";
+  title: string;
+  trusted: boolean;
+  trusted_brand: string | null;
+  findings: LinkFinding[];
+  advice: string;
+  second_opinions: { name: string; url: string }[];
+}
+
+export async function checkLink(url: string): Promise<LinkCheckResponse> {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/check-link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) {
+    let err = "Failed to analyze link";
+    try {
+      const j = await response.json();
+      err = j.detail || err;
+    } catch {
+      // ignore
+    }
+    throw new Error(err);
+  }
+  return (await response.json()) as LinkCheckResponse;
+}
+

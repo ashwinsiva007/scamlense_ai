@@ -7,6 +7,7 @@
     "benchmarks": "Benchmarks",
     "privacy": "Privacy Guarantee",
     "about": "About",
+    "linkChecker": "Link Checker",
     "demoModeBadge": "Demo Mode"
   },
   "greeting": {
@@ -23,6 +24,7 @@
   "form": {
     "uploadTab": "File / Screenshot",
     "pasteTab": "Paste text",
+    "linkTab": "Check Link",
     "dragDrop": "Drag and drop file or screenshot here, or click to browse",
     "pasteClipboardHint": "You can also press Ctrl+V to paste a screenshot directly from your clipboard.",
     "pastedClipboard": "Screenshot pasted from clipboard",
