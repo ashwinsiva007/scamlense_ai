@@ -37,10 +37,10 @@ const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> =
 };
 
 const CANDIDATE_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-flash-latest",
-  "gemini-3.1-flash-lite",
-  "gemini-3.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-pro",
 ];
 
 function normalizeGeminiResponse(
@@ -116,9 +116,36 @@ function normalizeGeminiResponse(
     };
   });
 
+  const score = typeof raw.score === "number" ? Math.min(100, Math.max(0, raw.score)) : 10;
+  const risk_level = score < 25 ? "low" : score < 50 ? "caution" : score < 75 ? "high" : "very_high";
+  const category = String(raw.category || extracted.document_type || "digital_communication");
+  const summary = String(raw.summary || raw.explanation || "Document evaluated with ScamLens AI vision intelligence.");
+  const visible_claims = Array.isArray(raw.visible_claims) ? raw.visible_claims.map(String) : [];
+  const extracted_details = (raw.extracted_details as Record<string, unknown>) || {
+    amount: extracted.amounts[0] || null,
+    transaction_status: "unknown",
+    transaction_id: null,
+    sender: extracted.sender,
+    recipient: null,
+  };
+  const red_flags = signals.filter((s) => s.weight > 0).map((s) => `${s.label}: ${s.evidence}`);
+  const positive_signals = signals.filter((s) => s.weight <= 0).map((s) => `${s.label}: ${s.evidence}`);
+
   return {
+    status: "success",
+    category,
+    verdict: band,
+    risk_score: score,
+    risk_level,
+    summary,
+    visible_claims,
+    extracted_details,
+    red_flags,
+    positive_signals,
+    verification_results: tool_results,
+    recommended_actions: next_steps,
     band,
-    score: typeof raw.score === "number" ? Math.min(100, Math.max(0, raw.score)) : 10,
+    score,
     confidence: (["high", "medium", "low"].includes(raw.confidence as string)
       ? raw.confidence
       : "medium") as "high" | "medium" | "low",

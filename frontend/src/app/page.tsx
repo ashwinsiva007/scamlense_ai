@@ -13,6 +13,7 @@ import {
   Info,
   Layers,
   ShieldAlert,
+  RotateCcw,
 } from "lucide-react";
 import { useT, Language } from "@/context/LanguageContext";
 import {
@@ -21,6 +22,7 @@ import {
   getHealth,
   AnalyzeResponse,
   Mode,
+  ApiError,
   ApiNetworkError,
   ApiRateLimitError,
 } from "@/lib/api";
@@ -30,6 +32,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Greeting } from "@/components/Greeting";
 import { useToast } from "@/components/ui/Toast";
 import { checkClientAuthenticity } from "@/lib/paymentScreenshot";
@@ -84,6 +87,8 @@ export default function HomePage() {
   const [inputText, setInputText] = useState("");
   const [selectedMode, setSelectedMode] = useState<"cloud" | "local">("cloud");
   const [isOllamaAvailable, setIsOllamaAvailable] = useState<boolean>(false);
+  const [isCloudAvailable, setIsCloudAvailable] = useState<boolean>(false);
+  const [cloudKeyConfigured, setCloudKeyConfigured] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(() => process.env.NEXT_PUBLIC_DEMO_MODE === "true");
@@ -193,8 +198,11 @@ export default function HomePage() {
     getHealth()
       .then((health) => {
         setIsOllamaAvailable(Boolean(health.ollama_reachable));
+        const keyConfigured = Boolean(health.key_configured || health.cloud_key_set);
+        setCloudKeyConfigured(keyConfigured);
+        setIsCloudAvailable(Boolean(keyConfigured && health.live_ok));
         // Clear demo mode if live connection is healthy
-        if (health.key_configured && health.live_ok) {
+        if (keyConfigured && health.live_ok) {
           setIsDemoMode(false);
           setError(null);
         } else if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
@@ -312,12 +320,6 @@ export default function HomePage() {
         return;
       }
 
-      // Run client-side background payment screenshot & tampering analysis concurrently
-      const clientAuthPromise =
-        selectedFile && isImageFile(selectedFile, null)
-          ? checkClientAuthenticity(selectedFile, inputText).catch(() => null)
-          : Promise.resolve(null);
-
       // Live mode call (Cloud or Local)
       const res = await analyzeMessage({
         image: selectedFile,
@@ -326,129 +328,94 @@ export default function HomePage() {
         mode: selectedMode,
       });
 
-      const clientAuth = await clientAuthPromise;
-      if (clientAuth && res) {
-        if (!Array.isArray(res.tool_results)) res.tool_results = [];
-        if (!Array.isArray(res.signals)) res.signals = [];
-        if (!res.extracted || typeof res.extracted !== "object") {
-          res.extracted = {
-            document_type: "",
-            sender: null,
-            message_text: "",
-            urls: [],
-            phone_numbers: [],
-            upi_ids: [],
-            amounts: [],
-            claimed_brand: null,
-            detected_language: language,
-            image_quality: "good",
-            visual_notes: [],
-          };
-        }
-        if (!Array.isArray(res.extracted.amounts)) res.extracted.amounts = [];
-        if (!Array.isArray(res.extracted.upi_ids)) res.extracted.upi_ids = [];
-        if (!Array.isArray(res.extracted.phone_numbers)) res.extracted.phone_numbers = [];
-        if (!Array.isArray(res.extracted.visual_notes)) res.extracted.visual_notes = [];
+      // Defensive initialization of all fields to prevent any render crash
+      res.extracted = res.extracted || {
+        document_type: "document",
+        sender: null,
+        message_text: "",
+        urls: [],
+        phone_numbers: [],
+        upi_ids: [],
+        amounts: [],
+        claimed_brand: null,
+        detected_language: language,
+        image_quality: "sharp",
+        visual_notes: [],
+      };
+      res.extracted.amounts = Array.isArray(res.extracted.amounts) ? res.extracted.amounts : [];
+      res.extracted.upi_ids = Array.isArray(res.extracted.upi_ids) ? res.extracted.upi_ids : [];
+      res.extracted.phone_numbers = Array.isArray(res.extracted.phone_numbers) ? res.extracted.phone_numbers : [];
+      res.extracted.urls = Array.isArray(res.extracted.urls) ? res.extracted.urls : [];
+      res.extracted.visual_notes = Array.isArray(res.extracted.visual_notes) ? res.extracted.visual_notes : [];
+      res.tool_results = Array.isArray(res.tool_results) ? res.tool_results : [];
+      res.signals = Array.isArray(res.signals) ? res.signals : [];
+      res.next_steps = Array.isArray(res.next_steps) ? res.next_steps : [];
 
-        // 1. Incorporate local duplicate screenshot / transaction ID reuse warnings
-        if (clientAuth.seenBefore.exactImageDate) {
-          res.tool_results.unshift({
-            tool: "screenshot_reuse",
-            target: "image_hash",
-            status: "warn",
-            detail: `This exact screenshot was previously verified in this browser on ${new Date(
-              clientAuth.seenBefore.exactImageDate
-            ).toLocaleDateString()}.`,
-          });
-          res.signals.unshift({
-            id: "PAY_REUSED_SCREENSHOT",
-            label: "Previously Verified or Recycled Screenshot",
-            category: "payment_screenshot",
-            weight: 20.0,
-            evidence: `Exact duplicate screenshot hash found in local verification history (${new Date(
-              clientAuth.seenBefore.exactImageDate
-            ).toLocaleDateString()})`,
-            source: "tool",
-          });
-        } else if (clientAuth.seenBefore.transactionIdDate) {
-          res.tool_results.unshift({
-            tool: "screenshot_reuse",
-            target: "transaction_id",
-            status: "warn",
-            detail: `This transaction ID previously appeared in a different screenshot on ${new Date(
-              clientAuth.seenBefore.transactionIdDate
-            ).toLocaleDateString()}.`,
-          });
-          res.signals.unshift({
-            id: "PAY_REUSED_SCREENSHOT",
-            label: "Previously Verified or Recycled Screenshot",
-            category: "payment_screenshot",
-            weight: 20.0,
-            evidence: `Duplicate transaction ID found in verification history (${new Date(
-              clientAuth.seenBefore.transactionIdDate
-            ).toLocaleDateString()})`,
-            source: "tool",
-          });
-        }
+      // Run client-side background payment screenshot & tampering analysis using authentic extracted text
+      if (selectedFile && isImageFile(selectedFile, null)) {
+        try {
+          const effectiveText = inputText.trim() || res.extracted.message_text;
+          const clientAuth = await checkClientAuthenticity(selectedFile, effectiveText);
+          if (clientAuth) {
+            // Incorporate duplicate screenshot reuse warnings safely
+            if (clientAuth.seenBefore.exactImageDate && !res.signals.some((s) => s.id === "PAY_REUSED_SCREENSHOT")) {
+              res.tool_results.unshift({
+                tool: "screenshot_reuse",
+                target: "image_hash",
+                status: "warn",
+                detail: `This exact screenshot was previously verified in this browser on ${new Date(
+                  clientAuth.seenBefore.exactImageDate
+                ).toLocaleDateString()}.`,
+              });
+              res.signals.unshift({
+                id: "PAY_REUSED_SCREENSHOT",
+                label: "Previously Verified or Recycled Screenshot",
+                category: "payment_screenshot",
+                weight: 20.0,
+                evidence: `Exact duplicate screenshot hash found in local verification history (${new Date(
+                  clientAuth.seenBefore.exactImageDate
+                ).toLocaleDateString()})`,
+                source: "tool",
+              });
+            }
 
-        // 2. Incorporate parsed payment fields if missing
-        if (clientAuth.parsed.amount) {
-          const amtStr =
-            clientAuth.parsed.currency === "INR"
-              ? `₹${clientAuth.parsed.amount}`
-              : clientAuth.parsed.amount;
-          if (
-            !res.extracted.amounts.includes(amtStr) &&
-            !res.extracted.amounts.includes(clientAuth.parsed.amount)
-          ) {
-            res.extracted.amounts.push(amtStr);
+            // ELA compression anomaly
+            if (clientAuth.elaRatio !== null && clientAuth.elaRatio > 4.0) {
+              const elaExists = res.tool_results.some((tr) => tr.target === "compression_ela");
+              if (!elaExists) {
+                res.tool_results.push({
+                  tool: "payment_authenticity",
+                  target: "compression_ela",
+                  status: "warn",
+                  detail: `Pixel-level Error Level Analysis detects localized compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
+                    1
+                  )} > 4.0). Editing or digital tampering suspected.`,
+                });
+                res.extracted.visual_notes.push(
+                  `Pixel-level ELA compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
+                    1
+                  )} > 4.0) indicates localized editing`
+                );
+              }
+            }
           }
-        }
-        for (const u of clientAuth.parsed.upi_ids) {
-          if (!res.extracted.upi_ids.includes(u)) {
-            res.extracted.upi_ids.push(u);
-          }
-        }
-        if (
-          clientAuth.parsed.phone &&
-          !res.extracted.phone_numbers.includes(clientAuth.parsed.phone)
-        ) {
-          res.extracted.phone_numbers.push(clientAuth.parsed.phone);
-        }
-        if (clientAuth.parsed.bank && !res.extracted.claimed_brand) {
-          res.extracted.claimed_brand = clientAuth.parsed.bank;
-        }
-        if (clientAuth.parsed.payment_app && !res.extracted.claimed_brand) {
-          res.extracted.claimed_brand = clientAuth.parsed.payment_app;
-        }
-
-        // 3. ELA compression anomaly
-        if (clientAuth.elaRatio !== null && clientAuth.elaRatio > 4.0) {
-          const elaExists = res.tool_results.some(
-            (tr) => tr.target === "compression_ela"
-          );
-          if (!elaExists) {
-            res.tool_results.push({
-              tool: "payment_authenticity",
-              target: "compression_ela",
-              status: "warn",
-              detail: `Pixel-level Error Level Analysis detects localized compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
-                1
-              )} > 4.0). Editing or digital tampering suspected.`,
-            });
-            res.extracted.visual_notes.push(
-              `Pixel-level ELA compression anomaly (ratio ${clientAuth.elaRatio.toFixed(
-                1
-              )} > 4.0) indicates localized editing`
-            );
-          }
+        } catch {
+          // ignore client-side check errors
         }
       }
 
       setResult(res);
     } catch (err: unknown) {
       // Step 5 Rule: Never fall back silently to demo or mock results after an error in cloud or local mode
-      const msg = err instanceof Error ? err.message : t("errors.generic");
+      let msg = err instanceof Error ? err.message : t("errors.generic");
+      if (
+        msg.includes("GEMINI_API_KEY") ||
+        msg.includes("CLOUD_KEY_MISSING") ||
+        msg.includes("KEY_MISSING") ||
+        (err instanceof ApiError && err.errorCode === "KEY_MISSING")
+      ) {
+        msg = "Gemini API key is not configured in backend/.env. To analyze custom screenshots in Cloud mode, please configure GEMINI_API_KEY or test with the built-in demo samples below.";
+      }
       setError(msg);
       toast(msg, "error");
     } finally {
@@ -540,12 +507,14 @@ export default function HomePage() {
 
       {/* Main Analyzer Card (replaces with ResultPanel when result exists) */}
       {result ? (
-        <ResultPanel
-          result={result}
-          originalImagePreview={filePreview}
-          onReset={handleReset}
-          language={language}
-        />
+        <ErrorBoundary onReset={handleReset} resetLabel={t("errorPage.retryBtn") || "Try Again / Reset"}>
+          <ResultPanel
+            result={result}
+            originalImagePreview={filePreview}
+            onReset={handleReset}
+            language={language}
+          />
+        </ErrorBoundary>
       ) : isLoading ? (
         <LoadingSteps
           labels={{
@@ -826,7 +795,14 @@ export default function HomePage() {
                   options={[
                     {
                       value: "cloud",
-                      label: t("form.modeCloudLabel"),
+                      label: isCloudAvailable
+                        ? t("form.modeCloudLabel")
+                        : cloudKeyConfigured
+                        ? `${t("form.modeCloudLabel")} (Connecting...)`
+                        : `${t("form.modeCloudLabel")} (Setup Required)`,
+                      title: isCloudAvailable
+                        ? t("form.modeCloudTooltip")
+                        : "Live Cloud inference requires GEMINI_API_KEY configured in backend/.env.",
                     },
                     {
                       value: "local",
@@ -836,19 +812,25 @@ export default function HomePage() {
                       disabled: !isOllamaAvailable,
                       title: isOllamaAvailable
                         ? t("form.modeLocalTooltip")
-                        : "Local Ollama daemon is offline (http://localhost:11434). Run Ollama to enable.",
+                        : "Local Ollama daemon is offline (http://localhost:11434). Run `ollama serve` to enable.",
                     },
                   ]}
                   value={selectedMode}
                   onChange={(val) => {
                     if (val === "local" && !isOllamaAvailable) {
-                      toast("Local Ollama is offline. Cloud mode (Gemini) remains active.", "info");
+                      toast("Local Ollama is offline. Run `ollama serve` or switch to Cloud mode.", "info");
                       return;
                     }
                     setSelectedMode(val);
                     setError(null);
                   }}
                 />
+                {!cloudKeyConfigured && selectedMode === "cloud" && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 mt-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Set <code className="font-mono font-bold bg-amber-100 px-1 py-0.5 rounded">GEMINI_API_KEY</code> in <code className="font-mono">backend/.env</code> for live multimodal analysis. Built-in samples below work offline.</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -939,6 +921,16 @@ export default function HomePage() {
                       <span>Switch to Live Cloud (Gemini)</span>
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAnalyze()}
+                    className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0 flex items-center gap-1 font-semibold"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-primary" />
+                    <span>{t("errorPage.retryBtn") || "Retry"}</span>
+                  </Button>
                   {!isDemoMode && (
                     <Button
                       type="button"
@@ -947,19 +939,19 @@ export default function HomePage() {
                       onClick={async () => {
                         setIsDemoMode(true);
                         setError(null);
-                        const sampleKey = activeSampleKey || "internship";
+                        const sampleKey = activeSampleKey || "payment";
                         try {
                           setIsLoading(true);
                           const demoRes = await loadDemoResult(sampleKey, language);
                           setResult(demoRes);
-                          toast("Switched to offline demo mode", "info");
+                          toast("Loaded verified sample result", "info");
                         } catch {
                           toast("Failed to load demo result", "error");
                         } finally {
                           setIsLoading(false);
                         }
                       }}
-                      className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0"
+                      className="text-xs bg-white text-slate-800 hover:bg-slate-100 shrink-0 font-semibold"
                     >
                       {t("errors.switchToDemoBtn")}
                     </Button>

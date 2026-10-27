@@ -251,7 +251,11 @@ export function ResultPanel({
               </h2>
             </div>
 
-            {result.band === "insufficient_info" ? (
+            {result.summary ? (
+              <p className={`text-xs sm:text-sm font-medium leading-relaxed ${bandConfig.textColor}`}>
+                {result.summary}
+              </p>
+            ) : result.band === "insufficient_info" ? (
               <p className="text-xs sm:text-sm text-slate-700 font-medium">
                 {t("results.bandInsufficientAdvice")}
               </p>

@@ -9,7 +9,7 @@ Never writes uploads to disk and never logs image data.
 
 import io
 from typing import Tuple
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 from app.config import settings
 
 
@@ -18,7 +18,7 @@ class ImageValidationError(Exception):
     pass
 
 
-ALLOWED_FORMATS = {"JPEG", "JPG", "PNG", "WEBP"}
+ALLOWED_FORMATS = {"JPEG", "JPG", "PNG", "WEBP", "GIF", "BMP", "TIFF", "MPO"}
 MAX_IMAGE_DIMENSION = 1600
 
 
@@ -117,10 +117,16 @@ def validate_and_process_image(
     # 5. Compute image quality before downscaling
     quality_rating = compute_image_quality(img)
 
-    # 6. Convert to RGB (strips color profile / transparency / EXIF metadata)
-    rgb_img = img.convert("RGB")
+    # 6. Correct EXIF orientation (handles rotated mobile camera / screenshot captures)
+    try:
+        oriented_img = ImageOps.exif_transpose(img) or img
+    except Exception:
+        oriented_img = img
 
-    # 7. Downscale if longest dimension exceeds 1600 px
+    # 7. Convert to RGB (strips color profile / transparency / EXIF metadata)
+    rgb_img = oriented_img.convert("RGB")
+
+    # 8. Downscale if longest dimension exceeds 1600 px
     w, h = rgb_img.size
     if max(w, h) > MAX_IMAGE_DIMENSION:
         scale = MAX_IMAGE_DIMENSION / float(max(w, h))
@@ -128,7 +134,7 @@ def validate_and_process_image(
         new_h = max(1, int(h * scale))
         rgb_img = rgb_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-    # 8. Re-encode as JPEG in memory
+    # 9. Re-encode as JPEG in memory
     out_buffer = io.BytesIO()
     rgb_img.save(out_buffer, format="JPEG", quality=88, optimize=True)
     processed_bytes = out_buffer.getvalue()

@@ -208,8 +208,105 @@ async def run_pipeline(
 
     timings["total"] = max(1, int((time.perf_counter() - t_start) * 1000))
 
+    # Map risk_level and summary per Section 8 & 9
+    risk_level = (
+        "low" if score < 25
+        else "caution" if score < 50
+        else "high" if score < 75
+        else "very_high"
+    )
+
+    msg_lower = (extracted.message_text or "").lower()
+    is_payment = (
+        extracted.document_type in ("payment_screenshot", "payment_receipt", "payment_confirmation")
+        or bool(scam_type and "payment" in scam_type.lower())
+        or any(s.category == "payment_screenshot" for s in signals)
+        or any(w in msg_lower for w in ["payment", "paid", "receipt", "upi ref", "transaction"])
+    )
+
+    if band == "insufficient_info":
+        summary = (
+            "We could not reliably assess this screenshot. Upload a clearer image or provide additional context."
+            if active_lang == "en" else explanation
+        )
+        category = "unknown_evidence"
+    elif band == "low_risk":
+        if is_payment:
+            summary = (
+                "Low risk indicators found. We did not identify significant scam indicators in the available evidence. "
+                "This does not prove the message or transaction is genuine. The screenshot appears consistent with a payment "
+                "confirmation, but the actual transaction has not been independently verified."
+                if active_lang == "en" else explanation
+            )
+            category = "payment_receipt"
+        else:
+            summary = (
+                "Low risk indicators found. We did not identify significant scam indicators in the available evidence. "
+                "This does not prove the message or transaction is genuine."
+                if active_lang == "en" else explanation
+            )
+            category = extracted.document_type or "digital_communication"
+    elif band == "suspicious":
+        summary = (
+            "Caution: Some details are suspicious. Verify independently before paying, clicking links or sharing personal information."
+            if active_lang == "en" else explanation
+        )
+        category = "payment_receipt" if is_payment else (extracted.document_type or "digital_communication")
+    else:  # likely_scam
+        summary = (
+            "Scam alert: The available evidence contains significant warning signs. Do not send money or share sensitive "
+            "information until you verify independently."
+            if active_lang == "en" else explanation
+        )
+        category = "payment_receipt" if is_payment else (extracted.document_type or "digital_communication")
+
+    # Extract transaction and entity details for structured consumption
+    tx_status = (
+        "failed" if any(w in (extracted.message_text or "").lower() for w in ["failed", "declined", "unsuccessful"])
+        else "pending" if any(w in (extracted.message_text or "").lower() for w in ["pending", "processing", "in progress"])
+        else "successful" if any(w in (extracted.message_text or "").lower() for w in ["successful", "completed", "paid", "sent", "received"])
+        else "unknown"
+    )
+
+    extracted_details = {
+        "amount": extracted.amounts[0] if extracted.amounts else None,
+        "amounts": extracted.amounts,
+        "currency": "INR" if any("₹" in a or "rs" in a.lower() or "inr" in a.lower() for a in extracted.amounts) else None,
+        "transaction_status": tx_status,
+        "transaction_id": next((s.evidence for s in signals if "UTR" in s.id or "TXN" in s.id), None),
+        "sender": extracted.sender,
+        "recipient": None,
+        "claimed_brand": extracted.claimed_brand,
+        "upi_ids": extracted.upi_ids,
+        "phone_numbers": extracted.phone_numbers,
+        "urls": extracted.urls,
+    }
+
+    visible_claims = [c for c in [
+        f"Status: {tx_status}" if tx_status != "unknown" else None,
+        f"Amount: {extracted.amounts[0]}" if extracted.amounts else None,
+        f"Claimed Brand: {extracted.claimed_brand}" if extracted.claimed_brand else None,
+        f"Sender: {extracted.sender}" if extracted.sender else None,
+    ] if c]
+
+    red_flags = [f"{s.label}: {s.evidence}" for s in signals if s.weight > 0]
+    positive_signals = [f"{s.label}: {s.evidence}" for s in signals if s.weight <= 0]
+    verification_results = [tr.model_dump() for tr in tool_results]
+
     return AnalyzeResponse(
         request_id=str(uuid.uuid4()),
+        status="success",
+        category=category,
+        verdict=band,
+        risk_score=score,
+        risk_level=risk_level,
+        summary=summary,
+        visible_claims=visible_claims,
+        extracted_details=extracted_details,
+        red_flags=red_flags,
+        positive_signals=positive_signals,
+        verification_results=verification_results,
+        recommended_actions=next_steps,
         band=band,
         score=score,
         confidence=confidence,

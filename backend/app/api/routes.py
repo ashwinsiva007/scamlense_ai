@@ -47,6 +47,12 @@ async def _check_live_model_health(active_model: str) -> bool:
         _live_cache["live_ok"] = False
         return False
 
+    target = active_model
+    if "gemma" in target.lower() or "gemini-3" in target.lower() or not target:
+        target = "gemini-2.0-flash"
+    elif target.startswith("google/"):
+        target = target.replace("google/", "")
+
     try:
         from google import genai
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -55,7 +61,7 @@ async def _check_live_model_health(active_model: str) -> bool:
 
         def _call_probe():
             res = client.models.generate_content(
-                model=active_model,
+                model=target,
                 contents="OK",
             )
             return bool(res and res.text)

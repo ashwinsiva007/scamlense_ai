@@ -48,6 +48,18 @@ class FamilyAlert(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     request_id: str = Field(..., description="Unique UUID for this analysis session")
+    status: str = Field(default="success", description="Status of the analysis")
+    category: Optional[str] = Field(None, description="Primary evidence category")
+    verdict: Optional[str] = Field(None, description="Assessment verdict")
+    risk_score: Optional[int] = Field(None, ge=0, le=100, description="Risk score 0 to 100")
+    risk_level: Optional[str] = Field(None, description="Risk level (low, caution, high, very_high)")
+    summary: Optional[str] = Field(None, description="Short summary of assessment")
+    visible_claims: List[str] = Field(default_factory=list, description="Verbatim visible claims extracted from input")
+    extracted_details: Dict[str, Any] = Field(default_factory=dict, description="Structured transaction and entity details")
+    red_flags: List[str] = Field(default_factory=list, description="Identified red flags")
+    positive_signals: List[str] = Field(default_factory=list, description="Mitigating signals or verified safe factors")
+    verification_results: List[Dict[str, Any]] = Field(default_factory=list, description="Verifier outputs")
+    recommended_actions: List[str] = Field(default_factory=list, description="Recommended immediate actions")
     band: BandType = Field(..., description="Calibrated risk tier")
     score: int = Field(..., ge=0, le=100, description="Deterministic risk score 0 to 100")
     confidence: ConfidenceType = Field(..., description="Confidence level of assessment")

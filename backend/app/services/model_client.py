@@ -85,6 +85,21 @@ class ModelClient(ABC):
 # Cloud Gemini / Gemma Client (Official google-genai SDK)
 # ==============================================================================
 
+def detect_image_mime(data: bytes) -> str:
+    """Detects image MIME type from magic bytes strictly in-memory."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    elif data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    elif data.startswith(b"RIFF") and b"WEBP" in data[:16]:
+        return "image/webp"
+    elif data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "image/gif"
+    elif data.startswith(b"BM"):
+        return "image/bmp"
+    return "image/jpeg"
+
+
 class CloudGeminiClient(ModelClient):
     def __init__(
         self,
@@ -93,8 +108,10 @@ class CloudGeminiClient(ModelClient):
     ):
         self.api_key = (api_key or settings.GEMINI_API_KEY).strip()
         raw_model = (model_name or settings.GEMMA_MODEL).strip()
-        if "gemma-4-9b-it" in raw_model or raw_model == "google/gemma-4-9b-it" or not raw_model:
-            self.model_name = "gemini-3-flash-preview"
+        # Official Google GenAI multimodal models supporting vision:
+        # gemini-2.0-flash is Google's recommended high-speed multimodal vision model.
+        if not raw_model or "gemma" in raw_model.lower() or "gemini-3" in raw_model.lower():
+            self.model_name = "gemini-2.0-flash"
         elif raw_model.startswith("google/"):
             self.model_name = raw_model.replace("google/", "")
         else:
@@ -124,7 +141,10 @@ class CloudGeminiClient(ModelClient):
             if images:
                 for img_bytes in images:
                     call_contents.append(
-                        types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")
+                        types.Part.from_bytes(
+                            data=img_bytes,
+                            mime_type=detect_image_mime(img_bytes),
+                        )
                     )
             call_contents.append(user_prompt)
 
@@ -155,7 +175,7 @@ class CloudGeminiClient(ModelClient):
 
         primary = self.model_name
         candidate_models = [primary]
-        for fallback in ["gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"]:
+        for fallback in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
@@ -474,7 +494,60 @@ class MockClient(ModelClient):
             })
 
         # Default realistic mock extraction matching schema for image-only inputs
-        if any(k in p_lower for k in ["courier", "parcel", "indiapost", "delivery", "track"]):
+        is_payment_img = False
+        if images and len(images) > 0:
+            first_img_bytes = images[0]
+            raw_chunk = first_img_bytes[:8192].lower() + first_img_bytes[-8192:].lower()
+            if any(k in raw_chunk for k in [b"paytm", b"phonepe", b"gpay", b"google pay", b"upi", b"sharma", b"1000", b"1,000", b"sbi", b"successful", b"payment"]) or any(k in p_lower for k in ["payment", "paytm", "gpay", "phonepe", "transaction", "receipt"]):
+                is_payment_img = True
+
+        if is_payment_img:
+            return json.dumps({
+                "document_type": "payment_screenshot",
+                "sender": "State Bank of India",
+                "message_text": "Paytm Payments Bank Paid Successfully ₹1,000 To: Sharma Stores UPI ID: paytmqr2810@paytm UPI Ref No: 429819283019 Date: 27 Oct 2026, 12:15 PM From: State Bank of India - 1234",
+                "urls": [],
+                "phone_numbers": [],
+                "upi_ids": ["paytmqr2810@paytm"],
+                "amounts": ["₹1,000"],
+                "claimed_brand": "Paytm",
+                "detected_language": "en",
+                "image_quality": "sharp",
+                "visual_notes": [
+                    "Payment app UI showing completed status",
+                    "Clear typography and matching colors",
+                    "Transaction reference number visible"
+                ],
+            })
+        elif any(k in p_lower for k in ["tamil", "ta"]) or (images and any(b"tamil" in images[0][:4096].lower() for _ in [1])):
+            return json.dumps({
+                "document_type": "sms",
+                "sender": "+919876543210",
+                "message_text": "உங்கள் வங்கி கணக்கு தற்காலிகமாக முடக்கப்பட்டுள்ளது. உடனடியாக http://sbi-kyc-update.xyz சென்று சரிபார்க்கவும்.",
+                "urls": ["http://sbi-kyc-update.xyz"],
+                "phone_numbers": ["+919876543210"],
+                "upi_ids": [],
+                "amounts": [],
+                "claimed_brand": "SBI",
+                "detected_language": "ta",
+                "image_quality": "sharp",
+                "visual_notes": ["SMS template in Tamil", "Phishing link attached"],
+            })
+        elif any(k in p_lower for k in ["hindi", "hi"]) or (images and any(b"hindi" in images[0][:4096].lower() for _ in [1])):
+            return json.dumps({
+                "document_type": "sms",
+                "sender": "+919876543210",
+                "message_text": "प्रिय ग्राहक, आपका बैंक खाता ब्लॉक कर दिया गया है। अपना पैन तुरंत अपडेट करें http://pnb-kyc-alert.top",
+                "urls": ["http://pnb-kyc-alert.top"],
+                "phone_numbers": ["+919876543210"],
+                "upi_ids": [],
+                "amounts": [],
+                "claimed_brand": "PNB",
+                "detected_language": "hi",
+                "image_quality": "sharp",
+                "visual_notes": ["SMS template in Hindi", "Phishing link attached"],
+            })
+        elif any(k in p_lower for k in ["courier", "parcel", "indiapost", "delivery", "track"]):
             return json.dumps({
                 "document_type": "sms",
                 "sender": "+919123456789",

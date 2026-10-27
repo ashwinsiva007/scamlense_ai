@@ -81,7 +81,7 @@ class Settings(BaseSettings):
         description="Alias for GEMINI_API_KEY",
     )
     GEMMA_MODEL: str = Field(
-        default="gemini-3.1-flash-lite-preview",
+        default="gemini-2.0-flash",
         description="Gemini/Gemma cloud model identifier read from environment",
     )
 
