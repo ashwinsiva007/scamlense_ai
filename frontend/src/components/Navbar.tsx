@@ -1,15 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldAlert, Globe, Menu, X, Sparkles } from "lucide-react";
 import { Language, useT } from "@/context/LanguageContext";
+import { getHealth, HealthResponse } from "@/lib/api";
 
 export const Navbar: React.FC = () => {
   const { language, setLanguage, t } = useT();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+
+  useEffect(() => {
+    getHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null));
+
+    const interval = setInterval(() => {
+      getHealth()
+        .then(setHealth)
+        .catch(() => setHealth(null));
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const navLinks = [
     { href: "/", label: t("nav.home") },
@@ -70,6 +85,31 @@ export const Navbar: React.FC = () => {
               );
             })}
           </nav>
+
+          {/* Connection Status Badge */}
+          <div className="hidden sm:flex items-center">
+            {health?.mode === "cloud" && health?.key_configured ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Cloud connected
+              </span>
+            ) : health?.mode === "cloud" && !health?.key_configured ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Cloud: key missing
+              </span>
+            ) : health?.mode === "local" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                Local mode
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                Demo mode
+              </span>
+            )}
+          </div>
 
           {/* Language Switcher & Controls */}
           <div className="flex items-center gap-2">

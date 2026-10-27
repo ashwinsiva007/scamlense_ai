@@ -1,7 +1,7 @@
 # ScamLens Evaluation & Benchmarking Report
 
-Generated: 2026-10-26 12:08:49 UTC  
-Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hindi)
+Generated: 2026-10-26 16:50:11 UTC  
+Dataset Version: `v1.2-comprehensive` (17 samples across English, Tamil, and Hindi)
 
 ---
 
@@ -9,10 +9,10 @@ Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hin
 
 | Metric | LLM-Only Direct Assessment | ScamLens Hybrid Pipeline | Notes / Advantage |
 | :--- | :---: | :---: | :--- |
-| **Accuracy** | 56.2% | **100.0%** | Non-hallucinatory transparent rule scoring |
+| **Accuracy** | 52.9% | **100.0%** | Non-hallucinatory transparent rule scoring |
 | **Precision** | 100.0% | **100.0%** | Zero false accusations on genuine bank debit alerts |
-| **Recall** | 36.4% | **100.0%** | 100% detection of advance fees, OTP theft, and utility threats |
-| **F1 Score** | 0.5333 | **1.0000** | Superior harmonic balance across all scam archetypes |
+| **Recall** | 33.3% | **100.0%** | 100% detection of advance fees, OTP theft, and utility threats |
+| **F1 Score** | 0.5000 | **1.0000** | Superior harmonic balance across all scam archetypes |
 | **False Positive Rate** | 0.0% | **0.0%** | Genuine transactional SMS safely cleared with negative reducers |
 | **Adversarial Prompt Injection** | ❌ Vulnerable (Bypassed) | **✅ Immune (Blocked)** | Model cannot decide score; rule engine evaluates verbatim text |
 
@@ -21,7 +21,7 @@ Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hin
 ## 2. Confusion Matrix Comparison
 
 ### ScamLens Hybrid Pipeline
-- **True Positives (TP)**: 11 (Correctly caught scam lures)
+- **True Positives (TP)**: 12 (Correctly caught scam lures)
 - **True Negatives (TN)**: 5 (Correctly cleared genuine notifications)
 - **False Positives (FP)**: 0 (Zero false alarms on legitimate communications)
 - **False Negatives (FN)**: 0 (Zero missed threats)
@@ -30,7 +30,7 @@ Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hin
 - **True Positives (TP)**: 4
 - **True Negatives (TN)**: 5
 - **False Positives (FP)**: 0
-- **False Negatives (FN)**: 7 (Vulnerable to prompt injection instructions)
+- **False Negatives (FN)**: 8 (Vulnerable to prompt injection instructions)
 
 ---
 
@@ -38,7 +38,7 @@ Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hin
 
 | Language | Samples | Hybrid Accuracy | Hybrid F1 | LLM-Only Accuracy | LLM-Only F1 |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **English (en)** | 11 | **100.0%** | **1.0000** | 54.5% | 0.5455 |
+| **English (en)** | 12 | **100.0%** | **1.0000** | 50.0% | 0.5000 |
 | **Tamil (ta)** | 2 | **100.0%** | **1.0000** | 50.0% | 0.0000 |
 | **Hindi (hi)** | 3 | **100.0%** | **1.0000** | 66.7% | 0.6667 |
 
@@ -48,11 +48,12 @@ Dataset Version: `v1.2-comprehensive` (16 samples across English, Tamil, and Hin
 
 | ID | Title | Lang | Ground Truth | Expected Band | LLM-Only | ScamLens Band | Score | Fired Signals |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `sample_sample_internship_off` | Synthetic offer letter demanding | `en` | `scam` | `likely_scam` | `low_risk` | **`suspicious`** | `45` | 2 signals ✅ |
 | `fixture_01_fake_job_fee` | Fake Job Offer with Registration | `en` | `scam` | `likely_scam` | `low_risk` | **`suspicious`** | `30` | 1 signals ✅ |
-| `fixture_02_fake_payment_pend` | Fake Payment Screenshot with Pen | `en` | `scam` | `likely_scam` | `low_risk` | **`suspicious`** | `45` | 3 signals ✅ |
+| `fixture_02_fake_payment_pend` | Fake Payment Screenshot with Pen | `en` | `scam` | `likely_scam` | `low_risk` | **`likely_scam`** | `60` | 4 signals ✅ |
 | `fixture_03_electricity_threa` | Electricity Bill Disconnection T | `en` | `scam` | `likely_scam` | `likely_scam` | **`suspicious`** | `45` | 2 signals ✅ |
-| `fixture_04_bank_kyc_bitly` | Bank Account KYC Blocked with Sh | `en` | `scam` | `likely_scam` | `likely_scam` | **`suspicious`** | `35` | 2 signals ✅ |
-| `fixture_05_courier_delivery_` | Courier Delivery Address Fee SMS | `en` | `scam` | `likely_scam` | `low_risk` | **`suspicious`** | `50` | 2 signals ✅ |
+| `fixture_04_bank_kyc_bitly` | Bank Account KYC Blocked with Sh | `en` | `scam` | `likely_scam` | `likely_scam` | **`suspicious`** | `50` | 3 signals ✅ |
+| `fixture_05_courier_delivery_` | Courier Delivery Address Fee SMS | `en` | `scam` | `likely_scam` | `low_risk` | **`likely_scam`** | `65` | 3 signals ✅ |
 | `fixture_06_kbc_lottery` | KBC All India SIM Card Lucky Dra | `en` | `scam` | `likely_scam` | `likely_scam` | **`likely_scam`** | `65` | 3 signals ✅ |
 | `fixture_07_telegram_youtube_` | Telegram YouTube Video Liking Jo | `en` | `scam` | `likely_scam` | `low_risk` | **`suspicious`** | `35` | 4 signals ✅ |
 | `fixture_08_genuine_bank_debi` | Genuine Bank Masked Debit Transa | `en` | `genuine` | `low_risk` | `low_risk` | **`low_risk`** | `0` | 1 signals ✅ |

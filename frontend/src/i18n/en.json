@@ -9,6 +9,12 @@
     "about": "About",
     "demoModeBadge": "Demo Mode"
   },
+  "greeting": {
+    "morning": "Hi, Good morning",
+    "afternoon": "Hi, Good afternoon",
+    "evening": "Hi, Good evening",
+    "night": "Hi, Good night"
+  },
   "hero": {
     "badge": "Privacy-First • Open-Source • Gemma 4 Powered",
     "title": "Got a suspicious message? Upload the screenshot.",

@@ -69,9 +69,12 @@ class HealthResponse(BaseModel):
     mode: str = Field(..., description="Current configured MODE")
     model: str = Field(..., description="Configured model identifier")
     model_name: Optional[str] = Field(None, description="Configured model name identifier")
+    env_file_loaded: str = Field(default="", description="Path of the environment file loaded")
     key_configured: bool = Field(default=False, description="Whether Gemini API key is configured (true or false only)")
     key_length: int = Field(default=0, description="Length of configured Gemini API key (never exposes key)")
     sdk_version: str = Field(default="unknown", description="Version of google-genai SDK installed")
+    process_id: int = Field(default=0, description="Process ID of the answering server")
+    started_at: str = Field(default="", description="ISO timestamp of server startup")
     ollama_reachable: bool = Field(default=False, description="Whether local Ollama endpoint responded")
     cloud_key_set: bool = Field(default=False, description="Whether cloud API key is configured")
 

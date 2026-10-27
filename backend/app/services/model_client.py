@@ -93,13 +93,8 @@ class CloudGeminiClient(ModelClient):
     ):
         self.api_key = (api_key or settings.GEMINI_API_KEY).strip()
         raw_model = (model_name or settings.GEMMA_MODEL).strip()
-        if (
-            "gemma-4-9b-it" in raw_model
-            or raw_model == "google/gemma-4-9b-it"
-            or not raw_model
-            or raw_model == "gemini-3-flash-preview"
-        ):
-            self.model_name = "gemini-3.5-flash"
+        if "gemma-4-9b-it" in raw_model or raw_model == "google/gemma-4-9b-it" or not raw_model:
+            self.model_name = "gemini-3-flash-preview"
         elif raw_model.startswith("google/"):
             self.model_name = raw_model.replace("google/", "")
         else:
@@ -144,26 +139,27 @@ class CloudGeminiClient(ModelClient):
 
             config = types.GenerateContentConfig(**config_kwargs)
 
+            # Robust timeout for multimodal vision-language generation
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
                     model=target_model,
                     contents=call_contents,
                     config=config,
                 ),
-                timeout=3.5,
+                timeout=25.0,
             )
 
             if not response or not response.text:
                 raise ModelClientError("Model returned an empty response.")
             return response.text
 
-        # Fast model rotation with fast failover
+        # Route multimodal images away from text-only Gemma models
         primary = self.model_name
         if images and "gemma" in primary.lower():
-            primary = "gemini-3.5-flash"
+            primary = "gemini-3.1-flash-lite-preview"
 
         candidate_models = [primary]
-        for fallback in ["gemini-3.5-flash", "gemini-flash-latest"]:
+        for fallback in ["gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-flash-latest"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
@@ -201,23 +197,21 @@ class CloudGeminiClient(ModelClient):
                     raise inner_err
             except asyncio.TimeoutError as te:
                 last_error = te
-                continue  # Try next fast candidate model
+                continue  # Try next candidate model
             except Exception as e:
                 last_error = e
                 err_msg = str(e).lower()
 
-                # 1. Key authentication errors fail fast
+                # 1. Key authentication errors fail fast with API message
                 if "401" in err_msg or "403" in err_msg or "api_key" in err_msg or "permission_denied" in err_msg:
                     raise ModelAuthError(
-                        "Gemini API key was rejected by Google AI Studio (HTTP 401/403). "
-                        "The key is invalid, revoked, or lacks permission. "
-                        "Please verify your key at https://aistudio.google.com or switch to Demo Mode."
+                        f"Gemini API key was rejected by Google AI Studio (HTTP 401/403): {e}"
                     ) from e
 
-                # 2. Rate limit (429) or quota exhausted - fail fast so local high-speed engine takes over instantly
+                # 2. Rate limit (429) or quota exhausted - fail fast
                 if any(x in err_msg for x in ["429", "resource_exhausted", "quota"]):
                     raise ModelRateLimitError(
-                        "Remote Gemini API daily free quota exceeded (HTTP 429)."
+                        f"Remote Gemini API rate limit or quota exceeded (HTTP 429): {e}"
                     ) from e
 
                 # 3. Model unavailable / busy (503/500/404) - try next model
@@ -227,7 +221,15 @@ class CloudGeminiClient(ModelClient):
         err_str = str(last_error or "").lower()
         if "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str:
             raise ModelRateLimitError(
-                "Remote Gemini API rate limit or quota exceeded (HTTP 429)."
+                f"Remote Gemini API rate limit or quota exceeded (HTTP 429): {last_error}"
+            )
+        if any(x in err_str for x in ["connect", "network", "dns", "ssl", "timeout"]):
+            raise ModelNetworkError(
+                f"Unable to reach Google AI Studio service: {last_error}"
+            )
+        if "404" in err_str or "not found" in err_str:
+            raise ModelNotFoundError(
+                f"Configured model '{primary}' was not found or is not allowed: {last_error}"
             )
         raise ModelUnavailableError(
             f"Google Gemini service is temporarily unavailable across all models. ({last_error})"
@@ -558,7 +560,8 @@ async def check_ollama_health(base_url: Optional[str] = None) -> bool:
 def is_cloud_key_configured() -> bool:
     """
     Verifies if GEMINI_API_KEY is configured with a non-placeholder value.
+    Accepts standard AIzaSy keys and newer Google auth keys without arbitrary length restrictions.
     """
     from app.config import clean_key
     key = clean_key(settings.GEMINI_API_KEY)
-    return bool(key and len(key) > 8)
+    return bool(key and len(key) > 0)

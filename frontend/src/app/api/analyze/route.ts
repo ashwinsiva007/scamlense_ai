@@ -8,6 +8,9 @@ import kycHi from "../../../../public/demo/sample_kyc_hi.json";
 import internshipEn from "../../../../public/demo/sample_internship_en.json";
 import internshipTa from "../../../../public/demo/sample_internship_ta.json";
 import internshipHi from "../../../../public/demo/sample_internship_hi.json";
+import bankAlertEn from "../../../../public/demo/sample_bank_alert_en.json";
+import bankAlertTa from "../../../../public/demo/sample_bank_alert_ta.json";
+import bankAlertHi from "../../../../public/demo/sample_bank_alert_hi.json";
 
 const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> = {
   payment: {
@@ -24,6 +27,11 @@ const SAMPLE_DATABASE: Record<string, Record<string, Record<string, unknown>>> =
     en: internshipEn as Record<string, unknown>,
     ta: internshipTa as Record<string, unknown>,
     hi: internshipHi as Record<string, unknown>,
+  },
+  bank_alert: {
+    en: bankAlertEn as Record<string, unknown>,
+    ta: bankAlertTa as Record<string, unknown>,
+    hi: bankAlertHi as Record<string, unknown>,
   },
 };
 
@@ -52,33 +60,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Determine document scenario based on file name or text contents
-    const query = (text + " " + (image?.name || "")).toLowerCase();
-    let sampleKey: "payment" | "kyc" | "internship" = "internship";
-
-    if (
-      query.includes("pay") ||
-      query.includes("s1") ||
-      query.includes("upi") ||
-      query.includes("rupee") ||
-      query.includes("inr") ||
-      query.includes("screenshot") ||
-      query.includes("transfer") ||
-      query.includes("debited")
-    ) {
+    // 2. In demo/serverless mode, only return cached results for exact built-in samples
+    const filename = image?.name || "";
+    let sampleKey: "internship" | "payment" | "kyc" | "bank_alert" | null = null;
+    if (filename === "fake_internship_offer.png") {
+      sampleKey = "internship";
+    } else if (filename === "fake_payment_screenshot.png") {
       sampleKey = "payment";
-    } else if (
-      query.includes("kyc") ||
-      query.includes("pan") ||
-      query.includes("bank") ||
-      query.includes("sbi") ||
-      query.includes("deactivated") ||
-      query.includes("blocked") ||
-      query.includes("parcel") ||
-      query.includes("courier") ||
-      query.includes("post")
-    ) {
+    } else if (filename === "fake_kyc_otp_sms.png") {
       sampleKey = "kyc";
+    } else if (filename === "genuine_bank_alert.png") {
+      sampleKey = "bank_alert";
+    }
+
+    if (!sampleKey) {
+      return NextResponse.json(
+        {
+          error_code: "DEMO_MODE_RESTRICTION",
+          detail: "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.",
+          message: "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.",
+        },
+        { status: 400 }
+      );
     }
 
     // 3. Load pre-verified, localized analysis directly from bundled JSON

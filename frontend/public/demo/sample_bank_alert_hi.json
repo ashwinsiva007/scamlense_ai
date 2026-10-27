@@ -1,0 +1,67 @@
+{
+  "request_id": "demo-sample-bank-alert-hi",
+  "band": "low_risk",
+  "score": 0,
+  "confidence": "high",
+  "scam_type": null,
+  "language": "hi",
+  "extracted": {
+    "document_type": "transaction_alert",
+    "sender": "HDFCBK",
+    "message_text": "प्रिय ग्राहक, खाता **4589 से INR 450.00 डेबिट किया गया है (SWIGGY BANGALORE). शेष राशि: INR 18,250.00. सहायता के लिए 1800112211 पर कॉल करें।",
+    "urls": [],
+    "phone_numbers": ["1800112211", "9223150150"],
+    "upi_ids": [],
+    "amounts": ["INR 450.00", "INR 18,250.00"],
+    "claimed_brand": "HDFC Bank",
+    "detected_language": "hi",
+    "image_quality": "sharp",
+    "visual_notes": [
+      "सामान्य बैंक लेन-देन संदेश",
+      "छुपाया गया खाता नंबर (**4589)",
+      "पंजीकृत बैंक प्रेषक आईडी (HDFCBK)"
+    ]
+  },
+  "signals": [
+    {
+      "id": "REDUCER_STANDARD_MASKED_DEBIT_SMS",
+      "label": "मानक बैंक डेबिट/क्रेडिट सूचना",
+      "category": "reducers",
+      "weight": -20.0,
+      "evidence": "खाता **4589 से INR 450.00 डेबिट किया गया है",
+      "source": "rule"
+    }
+  ],
+  "tool_results": [
+    {
+      "tool": "sms_sender_verifier",
+      "target": "HDFCBK",
+      "status": "ok",
+      "detail": "प्रमाणित भारतीय बैंकिंग संस्थान का आधिकारिक हेडर।"
+    }
+  ],
+  "explanation": "कोई प्रमुख लाल झंडे नहीं मिले। यह पंजीकृत प्रेषक HDFCBK से एक सामान्य बैंक डेबिट सूचना है। इसमें खाता नंबर के अंतिम अंक सुरक्षित रूप से छिपे हुए हैं और कोई संवेदनशील विवरण या पासवर्ड नहीं मांगा गया है।",
+  "next_steps": [
+    "अपने आधिकारिक मोबाइल बैंकिंग ऐप में इस लेन-देन की पुष्टि करें।",
+    "यदि आपने यह लेन-देन नहीं किया है, तो तुरंत 1800112211 पर कॉल करके कार्ड ब्लॉक कराएं।",
+    "बैंक कभी भी आपका पासवर्ड, पिन या ओटीपी नहीं मांगते हैं।"
+  ],
+  "family_alert": {
+    "title": "ℹ️ सामान्य बैंक लेन-देन सूचना",
+    "body": "यह एक सामान्य बैंक डेबिट संदेश है। इसमें किसी भी तरह के धोखाधड़ी के लक्षण नहीं पाए गए हैं।",
+    "tips": [
+      "लेन-देन की अपने बैंक ऐप में जांच करें।",
+      "ओटीपी या पिन किसी के साथ साझा न करें।"
+    ]
+  },
+  "limitations": "ScamLens ने सत्यापित सुरक्षा नियमों के आधार पर इसका मूल्यांकन किया है। नियमित सावधानी बनाए रखें।",
+  "mode": "cloud",
+  "timings_ms": {
+    "validation": 2,
+    "extraction": 18,
+    "verifiers": 10,
+    "rules": 4,
+    "explanation": 15,
+    "total": 49
+  }
+}

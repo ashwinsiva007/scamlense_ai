@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 import os
 from typing import List, Literal, Union, Any, Optional
@@ -16,14 +17,17 @@ PLACEHOLDER_KEYS = {
     "your_key_here",
     "your_key",
     "changeme",
+    "paste_your_key_here",
     "placeholder",
     "none",
     "null",
 }
 
+SERVER_STARTED_AT = datetime.now(timezone.utc).isoformat()
+
 
 def clean_key(val: Optional[str]) -> str:
-    """Strips quotes and whitespace, and filters out common placeholder values."""
+    """Strips quotes and whitespace, and filters out common placeholder values. Does not restrict prefix."""
     if not val:
         return ""
     clean = str(val).strip().strip("'\"")
@@ -33,7 +37,7 @@ def clean_key(val: Optional[str]) -> str:
 
 
 def extract_key_from_file(file_path: Path) -> str:
-    """Safely extracts GEMINI_API_KEY or GOOGLE_API_KEY directly from an env file."""
+    """Safely extracts GEMINI_API_KEY or GOOGLE_API_KEY directly from an env file with absolute path."""
     if not file_path.is_file():
         return ""
     try:
@@ -55,14 +59,14 @@ def extract_key_from_file(file_path: Path) -> str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(str(ROOT_ENV), str(BACKEND_ENV)),
+        env_file=(str(BACKEND_ENV), str(ROOT_ENV)),
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
     # Runtime Execution Mode
     MODE: Literal["cloud", "local", "mock"] = Field(
-        default="mock",
+        default="cloud",
         description="Operating mode: cloud (Gemini/Gemma), local (Ollama), or mock",
     )
 
@@ -76,7 +80,7 @@ class Settings(BaseSettings):
         description="Alias for GEMINI_API_KEY",
     )
     GEMMA_MODEL: str = Field(
-        default="gemini-3-flash-preview",
+        default="gemini-3.1-flash-lite-preview",
         description="Gemini/Gemma cloud model identifier read from environment",
     )
 
@@ -114,24 +118,45 @@ class Settings(BaseSettings):
         description="Rate limit window max requests per minute per IP",
     )
 
+    # Metadata for Diagnostics & Health Monitoring
+    ENV_FILE_LOADED: str = Field(
+        default="",
+        description="Absolute path of the loaded environment file",
+    )
+
     @model_validator(mode="before")
     @classmethod
     def resolve_and_clean_config(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # Resolve GEMINI_API_KEY with priority:
-            # 1. os.environ (GEMINI_API_KEY or GOOGLE_API_KEY)
-            # 2. backend/.env (explicit file read)
-            # 3. repo root .env (explicit file read)
+            # Priority for GEMINI_API_KEY:
+            # 1. os.environ (explicit runtime override)
+            # 2. backend/.env (absolute path)
+            # 3. repo root .env (fallback)
             # 4. parsed dict fields from pydantic-settings
-            raw_key = (
-                clean_key(os.environ.get("GEMINI_API_KEY"))
-                or clean_key(os.environ.get("GOOGLE_API_KEY"))
-                or extract_key_from_file(BACKEND_ENV)
-                or extract_key_from_file(ROOT_ENV)
-                or clean_key(data.get("GEMINI_API_KEY"))
-                or clean_key(data.get("GOOGLE_API_KEY"))
-            )
+            loaded_env = "none"
+            raw_key = clean_key(os.environ.get("GEMINI_API_KEY")) or clean_key(os.environ.get("GOOGLE_API_KEY"))
+            if raw_key:
+                loaded_env = "os.environ"
+            elif BACKEND_ENV.is_file():
+                k = extract_key_from_file(BACKEND_ENV)
+                if k:
+                    raw_key = k
+                    loaded_env = str(BACKEND_ENV)
+
+            if not raw_key and ROOT_ENV.is_file():
+                k = extract_key_from_file(ROOT_ENV)
+                if k:
+                    raw_key = k
+                    loaded_env = str(ROOT_ENV)
+
+            if not raw_key:
+                k = clean_key(data.get("GEMINI_API_KEY")) or clean_key(data.get("GOOGLE_API_KEY"))
+                if k:
+                    raw_key = k
+                    loaded_env = str(BACKEND_ENV) if BACKEND_ENV.is_file() else (str(ROOT_ENV) if ROOT_ENV.is_file() else "pydantic")
+
             data["GEMINI_API_KEY"] = clean_key(raw_key)
+            data["ENV_FILE_LOADED"] = loaded_env if raw_key else (str(BACKEND_ENV) if BACKEND_ENV.is_file() else (str(ROOT_ENV) if ROOT_ENV.is_file() else "none"))
 
             # Clean and strip all other string fields
             for field in [

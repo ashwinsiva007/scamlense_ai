@@ -64,9 +64,12 @@ export interface HealthResponse {
   mode: string;
   model: string;
   model_name?: string;
+  env_file_loaded?: string;
   key_configured?: boolean;
   key_length?: number;
   sdk_version?: string;
+  process_id?: number;
+  started_at?: string;
   ollama_reachable: boolean;
   cloud_key_set: boolean;
 }
@@ -111,6 +114,15 @@ export function getApiBaseUrl(): string {
   return "http://localhost:8000";
 }
 
+export class ApiError extends Error {
+  errorCode?: string;
+  constructor(message: string, errorCode?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.errorCode = errorCode;
+  }
+}
+
 export class ApiNetworkError extends Error {
   isNetworkError = true;
   constructor(message: string) {
@@ -135,7 +147,6 @@ export async function analyzeMessage(params: {
 }): Promise<AnalyzeResponse> {
   const isForcedDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   if (isForcedDemo) {
-    // If demo mode is forced via env, load sample based on text hints or default to internship
     return loadDemoResult("internship", params.language || "en");
   }
 
@@ -163,9 +174,9 @@ export async function analyzeMessage(params: {
       if (response.status === 429) {
         let rateLimitDetail = "Rate limit reached. Please wait a minute before analyzing another document.";
         try {
-          const errorJson = (await response.json()) as { detail?: string };
-          if (errorJson.detail) {
-            rateLimitDetail = errorJson.detail;
+          const errorJson = (await response.json()) as { detail?: string; message?: string };
+          if (errorJson.detail || errorJson.message) {
+            rateLimitDetail = errorJson.detail || errorJson.message || rateLimitDetail;
           }
         } catch {
           // ignore JSON parse error
@@ -173,18 +184,20 @@ export async function analyzeMessage(params: {
         throw new ApiRateLimitError(rateLimitDetail);
       }
       let errorDetail = "Failed to analyze input";
+      let errorCode: string | undefined = undefined;
       try {
-        const errorJson = (await response.json()) as { detail?: string };
-        errorDetail = errorJson.detail || errorDetail;
+        const errorJson = (await response.json()) as { detail?: string; error_code?: string; message?: string };
+        errorDetail = errorJson.detail || errorJson.message || errorDetail;
+        errorCode = errorJson.error_code;
       } catch {
         // ignore JSON parse error
       }
-      throw new Error(errorDetail);
+      throw new ApiError(errorDetail, errorCode);
     }
 
     return (await response.json()) as AnalyzeResponse;
   } catch (err: unknown) {
-    if (err instanceof ApiRateLimitError) {
+    if (err instanceof ApiRateLimitError || err instanceof ApiError) {
       throw err;
     }
     if (err instanceof TypeError && (err.message.includes("fetch") || err.message.includes("network") || err.message.includes("Failed to fetch"))) {
@@ -195,7 +208,7 @@ export async function analyzeMessage(params: {
 }
 
 export async function loadDemoResult(
-  sampleKey: "internship" | "payment" | "kyc",
+  sampleKey: "internship" | "payment" | "kyc" | "bank_alert",
   language: Language
 ): Promise<AnalyzeResponse> {
   const filename = `/demo/sample_${sampleKey}_${language}.json`;

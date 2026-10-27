@@ -29,9 +29,10 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
+import { Greeting } from "@/components/Greeting";
 import { useToast } from "@/components/ui/Toast";
 
-type SampleKey = "internship" | "payment" | "kyc";
+type SampleKey = "internship" | "payment" | "kyc" | "bank_alert";
 
 export default function HomePage() {
   const { t, language, setLanguage } = useT();
@@ -157,6 +158,10 @@ export default function HomePage() {
         path: "/samples/fake_kyc_otp_sms.png",
         name: "fake_kyc_otp_sms.png",
       },
+      bank_alert: {
+        path: "/samples/genuine_bank_alert.png",
+        name: "genuine_bank_alert.png",
+      },
     };
 
     const target = sampleFiles[sampleKey];
@@ -190,14 +195,22 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // If user is testing a bundled sample in demo mode or offline
-      if (isDemoMode && activeSampleKey) {
-        const demoRes = await loadDemoResult(activeSampleKey, language);
-        setResult(demoRes);
-        return;
+      // Step 5 Rule: Demo mode only returns cached results for the built-in sample chips
+      if (isDemoMode) {
+        if (activeSampleKey) {
+          const demoRes = await loadDemoResult(activeSampleKey, language);
+          setResult(demoRes);
+          return;
+        } else {
+          // Rule: For user-uploaded or pasted input, demo mode must NOT return a canned verdict
+          const demoWarning = "Demo mode can only show built-in samples. Switch to Live or Local mode to analyze your own screenshot.";
+          setError(demoWarning);
+          toast(demoWarning, "info");
+          return;
+        }
       }
 
-      // Live call to backend
+      // Live mode call (Cloud or Local)
       const res = await analyzeMessage({
         image: selectedFile,
         text: inputText,
@@ -207,84 +220,10 @@ export default function HomePage() {
 
       setResult(res);
     } catch (err: unknown) {
-      // Seamless recovery: if cloud API key is not configured or fails auth, load verified result
-      if (
-        err instanceof Error &&
-        (err.message.includes("GEMINI_API_KEY") ||
-          err.message.includes("authentication failed") ||
-          err.message.includes("Model authentication failed"))
-      ) {
-        try {
-          const sampleKey =
-            activeSampleKey ||
-            (selectedFile?.name?.toLowerCase().includes("pay") ||
-            selectedFile?.name?.toLowerCase().includes("s1") ||
-            inputText.toLowerCase().includes("paid") ||
-            inputText.toLowerCase().includes("rupee")
-              ? "payment"
-              : inputText.toLowerCase().includes("parcel") || inputText.toLowerCase().includes("courier")
-              ? "kyc"
-              : "internship");
-          const demoRes = await loadDemoResult(sampleKey as any, language);
-          setResult(demoRes);
-          setIsDemoMode(true);
-          toast("⚡ Analyzed via verified intelligence engine", "info");
-          return;
-        } catch {
-          // ignore
-        }
-      }
-
-      if (
-        err instanceof ApiRateLimitError ||
-        (err instanceof Error &&
-          (err.message.includes("quota") ||
-            err.message.includes("429") ||
-            err.message.includes("rate limit") ||
-            err.message.includes("limit exceeded")))
-      ) {
-        try {
-          const sampleKey =
-            activeSampleKey ||
-            (selectedFile?.name?.toLowerCase().includes("pay") ||
-            selectedFile?.name?.toLowerCase().includes("s1") ||
-            inputText.toLowerCase().includes("paid") ||
-            inputText.toLowerCase().includes("rupee")
-              ? "payment"
-              : inputText.toLowerCase().includes("parcel") || inputText.toLowerCase().includes("courier")
-              ? "kyc"
-              : "internship");
-          const demoRes = await loadDemoResult(sampleKey as any, language);
-          setResult(demoRes);
-          setIsDemoMode(true);
-          toast("⚡ Instant verified analysis loaded", "info");
-          return;
-        } catch {
-          // fallback to error message
-        }
-        const msg = err instanceof Error ? err.message : t("errors.rateLimit");
-        setError(msg);
-        toast(msg, "error");
-      } else if (err instanceof ApiNetworkError) {
-        setError(t("errors.networkError"));
-        toast(t("errors.networkError"), "error");
-        // Auto-suggest switching to demo mode
-        if (activeSampleKey) {
-          try {
-            const demoRes = await loadDemoResult(activeSampleKey, language);
-            setResult(demoRes);
-            setIsDemoMode(true);
-            toast("Switched to offline demo mode", "info");
-            return;
-          } catch {
-            // ignore
-          }
-        }
-      } else {
-        const msg = err instanceof Error ? err.message : t("errors.generic");
-        setError(msg);
-        toast(msg, "error");
-      }
+      // Step 5 Rule: Never fall back silently to demo or mock results after an error in cloud or local mode
+      const msg = err instanceof Error ? err.message : t("errors.generic");
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setIsLoading(false);
     }
@@ -299,6 +238,27 @@ export default function HomePage() {
     setInputText("");
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
+  const handleSwitchToLive = async () => {
+    setIsLoading(true);
+    try {
+      const h = await getHealth();
+      if (h.key_configured) {
+        setIsDemoMode(false);
+        setSelectedMode("cloud");
+        setError(null);
+        toast("Connected to Live Cloud API!", "success");
+      } else {
+        toast("Live API key is not configured in backend/.env", "error");
+        setError("Gemini API key is not configured in backend/.env. Please configure your key in backend/.env or use Local mode.");
+      }
+    } catch {
+      toast("Backend server unreachable. Make sure backend is running on port 8000.", "error");
+      setError("Cannot connect to ScamLens API server on port 8000.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const hasValidInput = Boolean(selectedFile || filePreview || inputText.trim());
@@ -316,7 +276,8 @@ export default function HomePage() {
             <span>Demo Mode Active: Rendering verified sample intelligence offline.</span>
           </div>
           <button
-            onClick={() => setIsDemoMode(false)}
+            type="button"
+            onClick={handleSwitchToLive}
             className="text-xs font-bold underline hover:text-amber-950 ml-2"
           >
             Switch to Live API
@@ -327,6 +288,8 @@ export default function HomePage() {
       {/* Hero Header */}
       {!result && (
         <header className="text-center space-y-3.5 max-w-2xl mx-auto">
+          <Greeting />
+
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
             <Sparkles className="w-3.5 h-3.5" />
             <span>{t("hero.badge")}</span>
@@ -614,6 +577,19 @@ export default function HomePage() {
                 >
                   <span>📱</span>
                   <span>{t("form.sampleKyc")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleLoadSample("bank_alert")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all min-h-[44px] flex items-center gap-1.5 ${
+                    activeSampleKey === "bank_alert"
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span>🏦</span>
+                  <span>{language === "ta" ? "உண்மையான வங்கி எச்சரிக்கை" : language === "hi" ? "असली बैंक सूचना" : "Genuine Bank Alert"}</span>
                 </button>
               </div>
             </div>

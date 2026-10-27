@@ -143,14 +143,46 @@ def main():
         )
         if response and response.text:
             cleaned_resp = response.text.strip().replace("\n", " ")
-            print(f"\n[+] SUCCESS! Model '{target_model}' responded successfully:")
-            print(f"    Response snippet: \"{cleaned_resp[:60]}\"")
-            print("\n    Your Gemini Cloud API configuration is working properly!")
+            print(f"[+] Text test SUCCESS! Model '{target_model}' responded:")
+            print(f"    Response: \"{cleaned_resp[:60]}\"")
         else:
             print("\n[!] Model returned an empty response.")
     except Exception as e:
         err_msg = str(e)
-        print(f"\n[-] ERROR calling model '{target_model}':")
+        print(f"\n[-] ERROR calling text model '{target_model}':")
+        _diagnose_error(err_msg, sdk_version, key)
+        sys.exit(1)
+
+    # 6. Make a small image test request
+    vision_model = target_model if not ("gemma" in target_model.lower()) else "gemini-3-flash-preview"
+    print(f"\n[4] Testing tiny image multimodal request to model: '{vision_model}'...")
+
+    try:
+        import io
+        from PIL import Image
+        from google.genai import types
+
+        buf = io.BytesIO()
+        Image.new("RGB", (10, 10), color="white").save(buf, format="PNG")
+        tiny_png = buf.getvalue()
+
+        img_response = client.models.generate_content(
+            model=vision_model,
+            contents=[
+                types.Part.from_bytes(data=tiny_png, mime_type="image/png"),
+                "What color is this tiny image? Respond in one word.",
+            ],
+        )
+        if img_response and img_response.text:
+            cleaned_img_resp = img_response.text.strip().replace("\n", " ")
+            print(f"[+] Multimodal image test SUCCESS! Model '{vision_model}' responded:")
+            print(f"    Response: \"{cleaned_img_resp[:60]}\"")
+            print("\n    All Gemini Cloud API text and vision features are working properly!")
+        else:
+            print("\n[!] Vision model returned an empty response.")
+    except Exception as e:
+        err_msg = str(e)
+        print(f"\n[-] ERROR calling vision model '{vision_model}':")
         _diagnose_error(err_msg, sdk_version, key)
         sys.exit(1)
 
